@@ -1,0 +1,20 @@
+{
+  "name": "maildesk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "跨境客服工作台：邮箱、订单、AI 辅助与局域网管理配置",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node scripts/start-desk.cjs",
+    "start:business": "node scripts/start-desk.cjs --business",
+    "start:lan": "node scripts/start-lan.cjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.cjs"
+  },
+  "dependencies": {
+    "imapflow": "2.0.5",
+    "mailparser": "3.9.28",
+    "nodemailer": "10.0.10"
+  }
+}

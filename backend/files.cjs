@@ -1,0 +1,6 @@
+'use strict';
+const {createHash}=require('node:crypto');
+function safeName(name){return String(name||'attachment').replace(/[\x00-\x1f\x7f/\\]/g,'_').slice(0,180)||'attachment';}
+function saveReceived(store,messageId,files=[]){store.transaction(()=>{for(const [index,a] of files.entries()){const bytes=Buffer.from(a.content);const id=createHash('sha256').update(messageId+':'+index).digest('hex');store.db.prepare('INSERT OR REPLACE INTO file_contents VALUES(?,?)').run(id,bytes);store.db.prepare('INSERT OR REPLACE INTO attachments(id,message_id,provider_id,filename,content_type,size_bytes,storage_key) VALUES(?,?,?,?,?,?,?)').run(id,messageId,String(index),safeName(a.filename),a.contentType||'application/octet-stream',bytes.length,id);}});}
+function outgoingFiles(input=[]){if(!Array.isArray(input)||input.length>10)throw Error('ATTACHMENT_LIMIT');let total=0;return input.map(a=>{if(typeof a.data!=='string'||a.data.length>14*1024*1024||!/^[A-Za-z0-9+/]*={0,2}$/.test(a.data))throw Error('INVALID_ATTACHMENT');const content=Buffer.from(a.data,'base64');if(content.toString('base64')!==a.data)throw Error('INVALID_ATTACHMENT');total+=content.length;if(content.length>10*1024*1024||total>15*1024*1024)throw Error('ATTACHMENT_LIMIT');return{filename:safeName(a.name),content,contentType:'application/octet-stream'};});}
+module.exports={saveReceived,outgoingFiles};

@@ -1,0 +1,24 @@
+# Local data and credentials
+.maildesk/
+.preview-data/
+.demo-data/
+.lan-access.json
+局域网测试入口.txt
+credentials.dpapi*
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.key
+*.pem
+.env
+.env.*
+!.env.example
+# Generated files and dependencies
+node_modules/
+runtime/
+handoff/
+*.zip
+*.log
+*.original
+.DS_Store

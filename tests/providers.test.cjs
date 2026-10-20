@@ -1,0 +1,4 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const {addresses,parseJson,Shoplazza,orderFromShoplazza}=require('../backend/providers.cjs');
+test('header addresses and large provider ids remain intact',()=>{assert.deepEqual(addresses('Alice <aaa@gmail.com>, Bob &lt;b@example.com&gt;'),['aaa@gmail.com','b@example.com']);assert.equal(parseJson('{"id":12345678901234567890,"count":2}').id,'12345678901234567890');});
+test('order adapter preserves unknown refunds and rejects foreign domain',async()=>{assert.throws(()=>new Shoplazza({domain:'example.com',token:'fake'}));const client=new Shoplazza({domain:'example.myshoplaza.com',token:'fake',fetchImpl:async()=>new Response(JSON.stringify({data:{orders:[],cursor:null}}))});assert.deepEqual((await client.page()).orders,[]);const o=orderFromShoplazza({id:'1',number:'#1',currency:'USD',total_price:'19.99'},'shop');assert.equal(o.paid,null);assert.equal(o.refunded,null);});
