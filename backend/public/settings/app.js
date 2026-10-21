@@ -1,4 +1,5 @@
 'use strict';
+// Adapted Feather SVG geometry: see THIRD_PARTY_NOTICES.md and docs/third-party/feather-LICENSE.txt.
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const paths={mail:'M3 5h18v14H3z M3 5l9 8 9-8',spark:'m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z',shield:'m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6z M8 12l3 3 5-6',store:'M3 9l2-6h14l2 6 M3 9v3h18V9 M5 12v9h14v-9 M9 21v-6h6v6',eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12 M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0',check:'m5 12 4 4L19 6',plus:'M12 5v14 M5 12h14',inbox:'M4 3h16v18H4z M4 14h5l2 3h2l2-3h5',send:'m22 2-7 20-4-9-9-4z M22 2 11 13',refresh:'M21 4v6h-6 M3 20v-6h6 M5 7a8 8 0 0 1 13-2l3 5 M3 14l3 5a8 8 0 0 0 13-2',lock:'M5 10h14v11H5z M8 10V6a4 4 0 0 1 8 0v4',link:'M10 13l4-4 M8 16l-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0 M13 8l2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0'};

@@ -4,15 +4,35 @@
 
 这是清理后的公开源码副本。包含模拟数据生成脚本，**不包含真实客户/订单数据库、邮箱授权、AI Key、局域网访问码、附件、原交接包或本机运行时**。原店铺和邮箱标识已替换为示例值。
 
+[MIT 许可证](LICENSE) · [第三方声明](THIRD_PARTY_NOTICES.md) · [参与贡献](CONTRIBUTING.md) · [版本记录](CHANGELOG.md)
+
+## 真实运行截图
+
+以下图片由本仓库源码在 Node.js 24.22.0 下实际运行后，通过 Chromium 截取。界面中的顾客、订单和物流均为仓库自带的虚构演示数据，不是生产数据，也不是设计效果图。
+
+![桌面客服工作台：会话、演示邮件和订单详情](docs/screenshots/workbench-desktop.png)
+
+<details>
+<summary>查看移动端和 AI 配置页面</summary>
+
+<img src="docs/screenshots/conversation-mobile.png" alt="移动端演示邮件会话" width="390">
+
+![未填写真实授权的 AI 配置页](docs/screenshots/ai-settings.png)
+
+</details>
+
+[截图环境、源码版本与复现方式](docs/screenshots/README.md)。
+
 ## 启动
 
-安装 Node.js 24 或更新版本及 npm。项目在 Node.js 24.19.0 下验证。
+安装 Node.js 24 或更新版本。本次在 Node.js 24.22.0 下通过 49 项测试；使用锁定依赖复现环境：
 
 ```sh
 git clone https://github.com/shenxianlaodie/maildesk.git
 cd maildesk
-npm install
-npm start
+npm install --global pnpm@10.34.7
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm start
 ```
 
 打开 http://127.0.0.1:4174/ 。首次启动自动创建8位模拟顾客，演示回复只保存在本机，不对外发送。
@@ -42,6 +62,7 @@ npm run start:business
 
 ```sh
 npm test
+node scripts/audit-licenses.cjs --check
 ```
 
 测试使用内存或临时数据库及模拟连接，不调用真实邮箱/AI。真实服务的可用性与邮件投递仍需填写自己的授权后验证。
@@ -55,3 +76,7 @@ npm test
 - docs/：通用运行配置和 REA 分析说明。
 
 自动任务在预览启动脚本中暂停。停止终端进程即可停止服务；本仓库不会自动配置开机启动或修改防火墙。
+
+## 许可与再分发
+
+项目代码采用 [MIT License](LICENSE)。已核查锁定的 46 个 npm 依赖并保留其许可原文；内嵌 Feather 图标保留上游版权声明。具体分发条件、版本范围及不包含的运行时/业务资料见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

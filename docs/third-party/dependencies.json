@@ -1,0 +1,655 @@
+{
+  "lockfile": "pnpm-lock.yaml",
+  "lockfileSha256": "00447a524c65b9c16c9a23262455440716ee4c695bd00f1fbad83ef70da7c939",
+  "packageCount": 46,
+  "packages": [
+    {
+      "name": "@pinojs/redact",
+      "version": "0.4.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/@pinojs/redact/v/0.4.0",
+      "repository": "git+https://github.com/pinojs/redact.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "58d4023bfbed5fb530c5bb8d44641299eac62c850267415ec939cc42dea87e4f"
+        }
+      ]
+    },
+    {
+      "name": "@selderee/plugin-htmlparser2",
+      "version": "0.12.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/@selderee/plugin-htmlparser2/v/0.12.0",
+      "repository": "git+https://github.com/mxxii/selderee.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "a1f4c08ef3e49b39b716674993fb4c2e7fcf0db4386b829038c6dcb99200a056"
+        }
+      ]
+    },
+    {
+      "name": "@zone-eu/mailsplit",
+      "version": "5.4.17",
+      "declaredLicense": "(MIT OR EUPL-1.1+)",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/@zone-eu/mailsplit/v/5.4.17",
+      "repository": "https://github.com/zone-eu/mailsplit.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE.EUPL-1.2",
+          "sha256": "1dc969d706e1c7f06961186aadb674ed4886a669fe91b31914ac4fd8dbec83dc"
+        },
+        {
+          "file": "LICENSE.MIT",
+          "sha256": "412ad6764b495ece74454c3b1d1816a4bf9b533f94158d23bfe4342559d8ca46"
+        }
+      ]
+    },
+    {
+      "name": "atomic-sleep",
+      "version": "1.0.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/atomic-sleep/v/1.0.0",
+      "repository": "git+https://github.com/davidmarkclements/atomic-sleep.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "8d58741278b289a7f4b6dde2d6273fca7711b9849452c477933d1cccd03db1e7"
+        }
+      ]
+    },
+    {
+      "name": "deepmerge-ts",
+      "version": "8.0.2",
+      "declaredLicense": "BSD-3-Clause",
+      "selectedLicense": "BSD-3-Clause",
+      "source": "https://www.npmjs.com/package/deepmerge-ts/v/8.0.2",
+      "repository": "git+https://github.com/RebeccaStevens/deepmerge-ts.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "734d8fd2baff4a5b7450a5b8242d4a960bc4ade3b0ade5e6cad642965d1d496d"
+        }
+      ]
+    },
+    {
+      "name": "dom-serializer",
+      "version": "2.0.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/dom-serializer/v/2.0.0",
+      "repository": "git://github.com/cheeriojs/dom-serializer.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "94cfe87de9b178e8fee313a19178e625129e2ce559db32e772e7bd95114ee6ff"
+        }
+      ]
+    },
+    {
+      "name": "domelementtype",
+      "version": "2.3.0",
+      "declaredLicense": "BSD-2-Clause",
+      "selectedLicense": "BSD-2-Clause",
+      "source": "https://www.npmjs.com/package/domelementtype/v/2.3.0",
+      "repository": "git://github.com/fb55/domelementtype.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164"
+        }
+      ]
+    },
+    {
+      "name": "domhandler",
+      "version": "5.0.3",
+      "declaredLicense": "BSD-2-Clause",
+      "selectedLicense": "BSD-2-Clause",
+      "source": "https://www.npmjs.com/package/domhandler/v/5.0.3",
+      "repository": "git://github.com/fb55/domhandler.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164"
+        }
+      ]
+    },
+    {
+      "name": "domutils",
+      "version": "3.2.2",
+      "declaredLicense": "BSD-2-Clause",
+      "selectedLicense": "BSD-2-Clause",
+      "source": "https://www.npmjs.com/package/domutils/v/3.2.2",
+      "repository": "git://github.com/fb55/domutils.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164"
+        }
+      ]
+    },
+    {
+      "name": "encoding-japanese",
+      "version": "2.4.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/encoding-japanese/v/2.4.0",
+      "repository": "https://github.com/polygonplanet/encoding.js.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "a0977543d7fb164a7bd5e3cb317161ca8a8f679a4e4b9dcecb93c1c499e6dceb"
+        }
+      ]
+    },
+    {
+      "name": "entities",
+      "version": "4.5.0",
+      "declaredLicense": "BSD-2-Clause",
+      "selectedLicense": "BSD-2-Clause",
+      "source": "https://www.npmjs.com/package/entities/v/4.5.0",
+      "repository": "git://github.com/fb55/entities.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164"
+        }
+      ]
+    },
+    {
+      "name": "entities",
+      "version": "7.0.1",
+      "declaredLicense": "BSD-2-Clause",
+      "selectedLicense": "BSD-2-Clause",
+      "source": "https://www.npmjs.com/package/entities/v/7.0.1",
+      "repository": "https://github.com/fb55/entities.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164"
+        }
+      ]
+    },
+    {
+      "name": "he",
+      "version": "1.2.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/he/v/1.2.0",
+      "repository": "https://github.com/mathiasbynens/he.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE-MIT.txt",
+          "sha256": "483acb265f182907d1caf6cff9c16c96f31325ed23792832cc5d8b12d5f88c8a"
+        }
+      ]
+    },
+    {
+      "name": "html-to-text",
+      "version": "10.0.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/html-to-text/v/10.0.1",
+      "repository": "git://github.com/html-to-text/node-html-to-text.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "43659035063c7ae7e47d4ba4bb41b6acbde34d2fb7d21205e92909ea4ddb843b"
+        }
+      ]
+    },
+    {
+      "name": "htmlparser2",
+      "version": "10.1.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/htmlparser2/v/10.1.0",
+      "repository": "git://github.com/fb55/htmlparser2.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "204cfa747341660e4da64cd23e8c876c6b20279d247f48564993d3fc4a2eab47"
+        }
+      ]
+    },
+    {
+      "name": "iconv-lite",
+      "version": "0.7.3",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/iconv-lite/v/0.7.3",
+      "repository": "https://github.com/pillarjs/iconv-lite.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "ac779f7314c74f232ef847ea86e714abe25cf6eeb5cc97b69451b74e2af6492d"
+        }
+      ]
+    },
+    {
+      "name": "imapflow",
+      "version": "2.0.5",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/imapflow/v/2.0.5",
+      "repository": "git+https://github.com/postalsys/imapflow.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE.txt",
+          "sha256": "47332d2cd4269747a7b8a1ab5406ded5ff177dbafd7cf7e79060fe48ff5b45eb"
+        }
+      ]
+    },
+    {
+      "name": "ip-address",
+      "version": "10.7.2",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/ip-address/v/10.7.2",
+      "repository": "https://github.com/beaugunderson/ip-address.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "f8d791359a50cbcac82c29cb7b0b1b889b28be76fdd35b8ee33f0f7c8704702a"
+        }
+      ]
+    },
+    {
+      "name": "leac",
+      "version": "0.7.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/leac/v/0.7.0",
+      "repository": "git+https://github.com/mxxii/leac.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "ddd4eaafae6009e31c12abb70cf4369034db2fe17de7074ea89aecd3e95d7ffc"
+        }
+      ]
+    },
+    {
+      "name": "libbase64",
+      "version": "1.3.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/libbase64/v/1.3.0",
+      "repository": "git://github.com/nodemailer/libbase64.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "27d7db274ef1ff4ade7505f696a4d86243b6c73936d1ea10d235f0cee609a576"
+        }
+      ]
+    },
+    {
+      "name": "libmime",
+      "version": "5.4.4",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/libmime/v/5.4.4",
+      "repository": "git+https://github.com/nodemailer/libmime.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "0f2482bc852021c3226c1df9d75b610a9b795a5a88032cda51098dce3dae6740"
+        }
+      ]
+    },
+    {
+      "name": "libqp",
+      "version": "2.1.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/libqp/v/2.1.1",
+      "repository": "git://github.com/nodemailer/libqp.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "2dd95346123a3ae1ecae06a32a40d83f3bd3aecb0aa4198074c6518775974982"
+        }
+      ]
+    },
+    {
+      "name": "linkify-it",
+      "version": "5.0.2",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/linkify-it/v/5.0.2",
+      "repository": "markdown-it/linkify-it",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "95e3f7f0e81e9b4940cdfaa1956aaff5e4dfd2fb1565041e7c78eb9a606f23e3"
+        }
+      ]
+    },
+    {
+      "name": "mailparser",
+      "version": "3.9.28",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/mailparser/v/3.9.28",
+      "repository": "https://github.com/nodemailer/mailparser.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "4f1ac0e65b58ac085331698c7a1c01857ee00af203adce645bb0f47f4ae32b87"
+        }
+      ]
+    },
+    {
+      "name": "nodemailer",
+      "version": "10.0.10",
+      "declaredLicense": "MIT-0",
+      "selectedLicense": "MIT-0",
+      "source": "https://www.npmjs.com/package/nodemailer/v/10.0.10",
+      "repository": "https://github.com/nodemailer/nodemailer.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "4f814dcacd2da618d62829ea1f6238701cf421f18a6b36c91c5d8212245e2c78"
+        }
+      ]
+    },
+    {
+      "name": "on-exit-leak-free",
+      "version": "2.1.2",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/on-exit-leak-free/v/2.1.2",
+      "repository": "git+https://github.com/mcollina/on-exit-or-gc.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "47404ffc18f1267832bc0623857871de5a3a93ebb19693f5e1b963af91fab54b"
+        }
+      ]
+    },
+    {
+      "name": "parseley",
+      "version": "0.13.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/parseley/v/0.13.1",
+      "repository": "git+https://github.com/mxxii/parseley.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "ddd4eaafae6009e31c12abb70cf4369034db2fe17de7074ea89aecd3e95d7ffc"
+        }
+      ]
+    },
+    {
+      "name": "peberminta",
+      "version": "0.10.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/peberminta/v/0.10.0",
+      "repository": "git+https://github.com/mxxii/peberminta.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "ddd4eaafae6009e31c12abb70cf4369034db2fe17de7074ea89aecd3e95d7ffc"
+        }
+      ]
+    },
+    {
+      "name": "pino-abstract-transport",
+      "version": "3.0.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/pino-abstract-transport/v/3.0.0",
+      "repository": "git+https://github.com/pinojs/pino-abstract-transport.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "31f005ecff86a12a1351f4c2cb1133267c0b152546b08cd6fa4bdeb1943e00cd"
+        }
+      ]
+    },
+    {
+      "name": "pino-std-serializers",
+      "version": "7.1.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/pino-std-serializers/v/7.1.0",
+      "repository": "git+ssh://git@github.com/pinojs/pino-std-serializers.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "6206673d24786f09656f7a480b7c50af289e9690963aaa135af5b626de5250df"
+        }
+      ]
+    },
+    {
+      "name": "pino",
+      "version": "10.3.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/pino/v/10.3.1",
+      "repository": "git+https://github.com/pinojs/pino.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "d4eb00c3ef2fa54cdf05d167b15e994bc67226a7998e090e22a0bc8b16223a6c"
+        }
+      ]
+    },
+    {
+      "name": "process-warning",
+      "version": "5.1.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/process-warning/v/5.1.0",
+      "repository": "git+https://github.com/fastify/process-warning.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "8d3c1dd501e056405ab56f4ad87b987070d55d1fe814616584ec2360045f9017"
+        }
+      ]
+    },
+    {
+      "name": "punycode.js",
+      "version": "2.3.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/punycode.js/v/2.3.1",
+      "repository": "https://github.com/mathiasbynens/punycode.js.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE-MIT.txt",
+          "sha256": "483acb265f182907d1caf6cff9c16c96f31325ed23792832cc5d8b12d5f88c8a"
+        }
+      ]
+    },
+    {
+      "name": "quick-format-unescaped",
+      "version": "4.0.4",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/quick-format-unescaped/v/4.0.4",
+      "repository": "git+https://github.com/davidmarkclements/quick-format.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "5ac141bfc70bec8f40838502436bfcb85e3f4c24377e41b9ddef07bdd6aa51bc"
+        }
+      ]
+    },
+    {
+      "name": "real-require",
+      "version": "0.2.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/real-require/v/0.2.0",
+      "repository": "git+https://github.com/pinojs/real-require.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE.md",
+          "sha256": "cbf263504e800cf09f99962cce8497b76eef79c3526bca434b90c3ef4c17220d"
+        }
+      ]
+    },
+    {
+      "name": "real-require",
+      "version": "1.0.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/real-require/v/1.0.0",
+      "repository": "git+https://github.com/pinojs/real-require.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE.md",
+          "sha256": "cbf263504e800cf09f99962cce8497b76eef79c3526bca434b90c3ef4c17220d"
+        }
+      ]
+    },
+    {
+      "name": "safe-stable-stringify",
+      "version": "2.5.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/safe-stable-stringify/v/2.5.0",
+      "repository": "git+https://github.com/BridgeAR/safe-stable-stringify.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "3a6d6de49d284a36c5d271ef0e62eca1838cc460dd7630e3f2c347c8f5b2232a"
+        }
+      ]
+    },
+    {
+      "name": "safer-buffer",
+      "version": "2.1.2",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/safer-buffer/v/2.1.2",
+      "repository": "git+https://github.com/ChALkeR/safer-buffer.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "4bc935e71be198c67ddf3c2b5fddb195f6edc182bfc155a96a6db61b44b494b9"
+        }
+      ]
+    },
+    {
+      "name": "selderee",
+      "version": "0.12.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/selderee/v/0.12.0",
+      "repository": "git+https://github.com/mxxii/selderee.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "a1f4c08ef3e49b39b716674993fb4c2e7fcf0db4386b829038c6dcb99200a056"
+        }
+      ]
+    },
+    {
+      "name": "smart-buffer",
+      "version": "4.2.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/smart-buffer/v/4.2.0",
+      "repository": "https://github.com/JoshGlazebrook/smart-buffer.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "c46e2c333e1c9e6fcfd130cf91b8e54bf67b60fabbc04996f7e199b990353ff3"
+        }
+      ]
+    },
+    {
+      "name": "socks",
+      "version": "2.8.10",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/socks/v/2.8.10",
+      "repository": "git+https://github.com/JoshGlazebrook/socks.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "4f4f28866154c8d758241a64296e8790d45d7d912ff7b029930778c06d8f2a72"
+        }
+      ]
+    },
+    {
+      "name": "sonic-boom",
+      "version": "4.2.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/sonic-boom/v/4.2.1",
+      "repository": "git+https://github.com/pinojs/sonic-boom.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "db5c3795cb080810fed0380bf4d6adef3f81579e8ae3a867d3c2abab2329db9d"
+        }
+      ]
+    },
+    {
+      "name": "split2",
+      "version": "4.2.0",
+      "declaredLicense": "ISC",
+      "selectedLicense": "ISC",
+      "source": "https://www.npmjs.com/package/split2/v/4.2.0",
+      "repository": "https://github.com/mcollina/split2.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "c372ef2fa1dfcb124ed807609751e75e3a009f108c5724916b489288fcb88a0c"
+        }
+      ]
+    },
+    {
+      "name": "thread-stream",
+      "version": "4.2.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/thread-stream/v/4.2.0",
+      "repository": "git+https://github.com/mcollina/thread-stream.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "47404ffc18f1267832bc0623857871de5a3a93ebb19693f5e1b963af91fab54b"
+        }
+      ]
+    },
+    {
+      "name": "tlds",
+      "version": "1.261.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/tlds/v/1.261.0",
+      "repository": "https://github.com/stephenmathieson/node-tlds.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "65972abf99c026dca44677f537b7bacc8d7a95df3126912b74e697b6352331a6"
+        }
+      ]
+    },
+    {
+      "name": "uc.micro",
+      "version": "2.1.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/uc.micro/v/2.1.0",
+      "repository": "markdown-it/uc.micro",
+      "licenseFiles": [
+        {
+          "file": "LICENSE.txt",
+          "sha256": "483acb265f182907d1caf6cff9c16c96f31325ed23792832cc5d8b12d5f88c8a"
+        }
+      ]
+    }
+  ]
+}

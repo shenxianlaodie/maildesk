@@ -16,6 +16,7 @@ credentials.dpapi*
 !.env.example
 # Generated files and dependencies
 node_modules/
+.pnpm-store/
 runtime/
 handoff/
 *.zip
