@@ -1,7 +1,7 @@
 {
   "lockfile": "pnpm-lock.yaml",
-  "lockfileSha256": "00447a524c65b9c16c9a23262455440716ee4c695bd00f1fbad83ef70da7c939",
-  "packageCount": 46,
+  "lockfileSha256": "9b0808426bad939a19616f8eb2124af7be0709392f05ea4d2f4455f87de1b1d7",
+  "packageCount": 59,
   "packages": [
     {
       "name": "@pinojs/redact",
@@ -400,6 +400,118 @@
       ]
     },
     {
+      "name": "pg-cloudflare",
+      "version": "1.4.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/pg-cloudflare/v/1.4.1",
+      "repository": "git://github.com/brianc/node-postgres.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "192b8f5c96900f04a1271dec39688655d7416c1c6ea84a508e18b50d2b6751f3"
+        }
+      ]
+    },
+    {
+      "name": "pg-connection-string",
+      "version": "2.14.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/pg-connection-string/v/2.14.1",
+      "repository": "git://github.com/brianc/node-postgres.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "2244b5486c4427001b6756a87b9a297d427c111dcc3ba64a097492a8979c23d0"
+        }
+      ]
+    },
+    {
+      "name": "pg-int8",
+      "version": "1.0.1",
+      "declaredLicense": "ISC",
+      "selectedLicense": "ISC",
+      "source": "https://www.npmjs.com/package/pg-int8/v/1.0.1",
+      "repository": "https://github.com/charmander/pg-int8",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "4e8e87ccdfc7e4b47fd89015f78468aa53b6bf43ab6e6e12d43e8f55294911de"
+        }
+      ]
+    },
+    {
+      "name": "pg-pool",
+      "version": "3.14.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/pg-pool/v/3.14.0",
+      "repository": "git://github.com/brianc/node-postgres.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "4f15ee7fc2a72082859d7e0d12dfa4bcdd70b1c744ad3850d07780730ac08557"
+        }
+      ]
+    },
+    {
+      "name": "pg-protocol",
+      "version": "1.16.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/pg-protocol/v/1.16.1",
+      "repository": "git://github.com/brianc/node-postgres.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "192b8f5c96900f04a1271dec39688655d7416c1c6ea84a508e18b50d2b6751f3"
+        }
+      ]
+    },
+    {
+      "name": "pg-types",
+      "version": "2.2.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/pg-types/v/2.2.0",
+      "repository": "git://github.com/brianc/node-pg-types.git",
+      "licenseFiles": [
+        {
+          "file": "README.md",
+          "sha256": "ecda9bca71d3f0cee4e600d1dd2bef336213f39ef2e8fca6a1a1c1c8723f643a"
+        }
+      ]
+    },
+    {
+      "name": "pg",
+      "version": "8.23.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/pg/v/8.23.1",
+      "repository": "git://github.com/brianc/node-postgres.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "192b8f5c96900f04a1271dec39688655d7416c1c6ea84a508e18b50d2b6751f3"
+        }
+      ]
+    },
+    {
+      "name": "pgpass",
+      "version": "1.0.5",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/pgpass/v/1.0.5",
+      "repository": "https://github.com/hoegaarden/pgpass.git",
+      "licenseFiles": [
+        {
+          "file": "README.md",
+          "sha256": "62549909404b5a0dcb2b4b74c9a930baf8095dbcfa1543c4ffc79378acd22b57"
+        }
+      ]
+    },
+    {
       "name": "pino-abstract-transport",
       "version": "3.0.0",
       "declaredLicense": "MIT",
@@ -438,6 +550,62 @@
         {
           "file": "LICENSE",
           "sha256": "d4eb00c3ef2fa54cdf05d167b15e994bc67226a7998e090e22a0bc8b16223a6c"
+        }
+      ]
+    },
+    {
+      "name": "postgres-array",
+      "version": "2.0.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/postgres-array/v/2.0.0",
+      "repository": "bendrucker/postgres-array",
+      "licenseFiles": [
+        {
+          "file": "license",
+          "sha256": "f057f36739d53d228a746de4440c1e0c644ecde06d6beab45337d39c9d12a393"
+        }
+      ]
+    },
+    {
+      "name": "postgres-bytea",
+      "version": "1.0.1",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/postgres-bytea/v/1.0.1",
+      "repository": "bendrucker/postgres-bytea",
+      "licenseFiles": [
+        {
+          "file": "license",
+          "sha256": "f057f36739d53d228a746de4440c1e0c644ecde06d6beab45337d39c9d12a393"
+        }
+      ]
+    },
+    {
+      "name": "postgres-date",
+      "version": "1.0.7",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/postgres-date/v/1.0.7",
+      "repository": "bendrucker/postgres-date",
+      "licenseFiles": [
+        {
+          "file": "license",
+          "sha256": "f057f36739d53d228a746de4440c1e0c644ecde06d6beab45337d39c9d12a393"
+        }
+      ]
+    },
+    {
+      "name": "postgres-interval",
+      "version": "1.2.0",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/postgres-interval/v/1.2.0",
+      "repository": "bendrucker/postgres-interval",
+      "licenseFiles": [
+        {
+          "file": "license",
+          "sha256": "f057f36739d53d228a746de4440c1e0c644ecde06d6beab45337d39c9d12a393"
         }
       ]
     },
@@ -648,6 +816,20 @@
         {
           "file": "LICENSE.txt",
           "sha256": "483acb265f182907d1caf6cff9c16c96f31325ed23792832cc5d8b12d5f88c8a"
+        }
+      ]
+    },
+    {
+      "name": "xtend",
+      "version": "4.0.2",
+      "declaredLicense": "MIT",
+      "selectedLicense": "MIT",
+      "source": "https://www.npmjs.com/package/xtend/v/4.0.2",
+      "repository": "git://github.com/Raynos/xtend.git",
+      "licenseFiles": [
+        {
+          "file": "LICENSE",
+          "sha256": "82e67379203d5794e7c44549847d8d64ae6904591381682360470898bd306821"
         }
       ]
     }

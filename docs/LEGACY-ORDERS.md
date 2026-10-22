@@ -1,0 +1,15 @@
+# Chatwoot orders and inbound email refresh
+
+Set `LEGACY_ORDER_DATABASE_PATH` to the bridge's `stores.sqlite` and mount its directory read-only, including the SQLite WAL/SHM files. Production uses the existing `chatwoot-docker_mabang-bridge-data` volume at `/legacy`. The current PostgreSQL `ORDER_DATABASE_URL` remains enabled.
+
+The worker reads `order_index`, `order_core`, and `order_email_index`, and builds a sanitized search cache at `MAILDESK_DATA_DIR/legacy-orders.sqlite`. It does not copy store access tokens into the cache or return them to the browser. Initial indexing is completed before deployment; subsequent index rebuilds follow the configured daily refresh schedule. Searches continue using the previous complete index while rebuilding. Source databases are not modified.
+
+Orders are merged by shop domain and provider order ID or order number. Existing `pg:` IDs remain canonical when both sources contain an order; legacy-only orders use stable `cw:` IDs. Newer order timestamps determine status, while real shipment records and local notes are retained. Different shops never merge merely because they share an order number.
+
+Inbound messages imported through IMAP enqueue persistent `mail_order_refresh_jobs`. On initial activation and the v2 association upgrade, the latest inbound message for each existing customer is queued. Matching checks normalized order numbers (including hash marks, case and delimited shop prefixes), tracking numbers, confirmed same-customer/same-inbox reply chains, then order/contact/shipping email matches and existing links. The inbox's shop mapping narrows multiple candidates; an explicit mismatch or conflicting order/tracking references remains pending confirmation. Names, addresses, and phone numbers are not automatic identity keys.
+
+Confirmed per-message choices persist in `message_order_matches`. Actual `In-Reply-To` relationships and accepted outgoing message IDs provide thread continuity; subject similarity does not. Ambiguous results are stored in `order_match_candidates` and shown in the order panel for staff confirmation. Confirming clears that message's candidates and makes the chosen order the default when reopening the conversation. The worker refreshes only the resolved order, and retries preserve existing confirmations.
+
+Matched orders are refreshed through the shop's authenticated GET order-detail API. The read-only bridge store configuration supplies the token only inside the worker. Requests use a fixed validated Shoplazza host, reject redirects, time out after 20 seconds, and verify the returned order ID. Refreshed details are saved in the new system's local cache and survive index rebuilds and application restarts. Only explicit shipment timestamps populate `shipped_at`; order modification and processing dates do not.
+
+Mail imports do not wait for order refresh. Failed jobs retry up to three attempts; `status`, `last_error`, and `refreshed` in `mail_order_refresh_jobs` provide operational results. Stores with missing or rejected credentials retain their last known order data. Closing the service waits for the current job before closing its stores and workers.

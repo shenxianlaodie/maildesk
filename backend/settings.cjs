@@ -1,15 +1,18 @@
 'use strict';
+const {readSignatures,saveSignature}=require('./signatures.cjs');
 const {aiConfig}=require('./connection-config.cjs');
 const {generate}=require('./ai-client.cjs');
 const {verifyImap}=require('./imap.cjs');
 const {transport}=require('./smtp.cjs');
 function publicAI(vault){const c=vault.get('ai');return{baseUrl:c.baseUrl||'https://api.openai.com/v1',apiType:c.apiType||'responses',model:c.model||'',hasKey:!!c.apiKey,translation:c.translation!==false,reply:c.reply!==false,autoClassify:c.autoClassify===true};}
-function settings({store,vault,accountManager,pilot,demo,autoSync=false,verifyImapImpl=verifyImap,makeTransport=transport,generateImpl=generate}){
+function settings({store,vault,accountManager,pilot,demo,autoSync=false,getAutoSync=()=>autoSync,setAutoSync=null,verifyImapImpl=verifyImap,makeTransport=transport,generateImpl=generate}){
  const db=store.db;const testKey=(kind,id='')=>'connection_test:'+kind+':'+id;
  function testState(kind,id){try{return JSON.parse(db.prepare('SELECT value FROM app_settings WHERE key=?').get(testKey(kind,id))?.value||'null');}catch{return null;}}
- function read(){const accounts=accountManager.list();accounts.inboxes.forEach(i=>{i.tests={imap:testState('imap',i.id),smtp:testState('smtp',i.id)};});return{demo,autoSync,storage:process.platform==='win32'?'windows-dpapi':'local-aes-gcm',accounts,ai:{...publicAI(vault),test:testState('ai')},sendingMode:db.prepare("SELECT value FROM app_settings WHERE key='sending_mode'").get()?.value||'test',staff:db.prepare('SELECT id,display_name FROM staff WHERE active=1').all(),activeJob:db.prepare("SELECT provider,status,started_at FROM sync_runs WHERE status='running' LIMIT 1").get()||null};}
+ function read(){const accounts=accountManager.list();accounts.inboxes.forEach(i=>{i.tests={imap:testState('imap',i.id),smtp:testState('smtp',i.id)};});return{signatures:readSignatures(db),demo,autoSync:getAutoSync(),storage:process.platform==='win32'?'windows-dpapi':'local-aes-gcm',accounts,ai:{...publicAI(vault),test:testState('ai')},sendingMode:db.prepare("SELECT value FROM app_settings WHERE key='sending_mode'").get()?.value||'test',staff:db.prepare('SELECT id,display_name FROM staff WHERE active=1').all(),activeJob:db.prepare("SELECT provider,status,started_at FROM sync_runs WHERE status='running' LIMIT 1").get()||null};}
  function invalidate(kind,id){db.prepare('DELETE FROM app_settings WHERE key=?').run(testKey(kind,id));}
  async function route(url,method,input){if(method==='GET'&&url.pathname==='/api/settings')return read();if(method!=='POST')throw Error('METHOD_NOT_ALLOWED');if(demo)throw Error('DEMO_EXTERNAL_DISABLED');
+ if(url.pathname==='/api/settings/signatures')return saveSignature(db,input);
+ if(url.pathname==='/api/settings/auto-sync'){if(typeof input.enabled!=='boolean')throw Error('INVALID_AUTO_SYNC');if(!setAutoSync)throw Error('AUTO_SYNC_UNAVAILABLE');return setAutoSync(input.enabled);}
  if(url.pathname==='/api/settings/ai'){const old=vault.get('ai');const next={...input};if(!next.apiKey)delete next.apiKey;const c=aiConfig(next,old);if(old.apiKey&&!input.apiKey&&new URL(c.baseUrl).origin!==new URL(old.baseUrl||'https://api.openai.com/v1').origin)throw Error('AI_ENDPOINT_KEY_REQUIRED');vault.set('ai',c,true);invalidate('ai');db.prepare("UPDATE ai_jobs SET status='pending',attempts=0,next_at='' WHERE status IN('failed','retry')").run();return{saved:true,configured:!!c.apiKey};}
  if(url.pathname==='/api/settings/mailbox'){const allowed=['id','address','imap','smtp','password','smtpPassword','shopIds','staffId','testRecipients'];const data={};for(const k of allowed)if(input[k]!==undefined)data[k]=input[k];if(data.id){for(const [type,field,nextHost] of [['zoho','password',data.imap?.host],['smtp','smtpPassword',data.smtp?.host]]){const old=accountManager.config(type,data.id);if(old.password&&nextHost&&old.host&&nextHost.trim().toLowerCase()!==old.host&&!data[field])throw Error('MAIL_ENDPOINT_PASSWORD_REQUIRED');}}
  const result=accountManager.save({...data,provider:'zoho',allowIncomplete:true,enabled:false});invalidate('imap',result.id);invalidate('smtp',result.id);return{saved:true,id:result.id};}
