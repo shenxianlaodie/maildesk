@@ -33,6 +33,7 @@ for(const id of actual){
  const selectedLicense=p.name==='@zone-eu/mailsplit'&&p.license==='(MIT OR EUPL-1.1+)'?'MIT':p.license;
  if(!allowed.has(selectedLicense))throw Error('LICENSE_REVIEW_REQUIRED: '+id+' '+p.license);
  const names=fs.readdirSync(real).filter(name=>/^(licen[cs]e|copying|notice)([._-].*)?$/i.test(name)&&fs.statSync(path.join(real,name)).isFile()).sort();
+ if(!names.length&&['pg-types@2.2.0','pgpass@1.0.5'].includes(id)&&/## [Ll]icense[\s\S]*Permission is hereby granted[\s\S]*THE SOFTWARE\./.test(fs.readFileSync(path.join(real,'README.md'),'utf8')))names.push('README.md');
  if(!names.length)throw Error('LICENSE_TEXT_MISSING: '+id);
  const repository=typeof p.repository==='string'?p.repository:p.repository?.url||null;
  const files=names.map(name=>{const bytes=fs.readFileSync(path.join(real,name));notices.push('\n---\n\n## '+id+' / '+name+'\n\n'+bytes.toString('utf8').replace(/\r\n/g,'\n').replace(/[ \t]+$/gm,'').trimEnd()+'\n');return {file:name,sha256:hash(bytes)};});

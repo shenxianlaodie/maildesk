@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('node:fs');const {scrypt,randomBytes,timingSafeEqual}=require('node:crypto');const {promisify}=require('node:util');const derive=promisify(scrypt);const {staffId}=require('./staff-identity.cjs');
+async function passwordHash(password,salt){return(await derive(password,salt,64)).toString('hex');}
+async function newAccount(username,name,password,signature){const salt=randomBytes(16).toString('hex');return{username:username.toLowerCase(),name,role:'staff',active:true,salt,hash:await passwordHash(password,salt),version:randomBytes(16).toString('hex'),signature};}
+function createPasswordUsers(filename){
+ let store=null,busy=0;const dummySalt=randomBytes(16).toString('hex');
+ function users(){return fs.existsSync(filename)?JSON.parse(fs.readFileSync(filename,'utf8')):[];}
+ function identity(u){return{auth:'password',username:u.username,name:u.name,role:'staff',version:u.version};}
+ function sync(u){if(!store)return;const id=staffId(identity(u));store.addStaff({id,name:u.name});const {readSignatures,saveSignature}=require('./signatures.cjs');const rows=readSignatures(store.db);if(rows.some(r=>r.staffId===id))return;if(!rows.some(r=>r.code===u.signature))saveSignature(store.db,{action:'add',code:u.signature});const existing=readSignatures(store.db).find(r=>r.staffId===id);if(!existing){const target=readSignatures(store.db).find(r=>r.code===u.signature);if(target.staffId&&target.staffId!==id)throw Error('PASSWORD_SIGNATURE_CONFLICT');saveSignature(store.db,{action:'bind',code:u.signature,staffId:id});}}
+ return{connectStaff(s){store=s;store.transaction(()=>{for(const u of users())if(u.active)sync(u);});},getUser(i){if(i?.auth!=='password')return null;const u=users().find(u=>u.username===i.username&&u.active&&u.version===i.version);return u?identity(u):null;},async authenticate(username,password){if(busy>=4)throw Error('PASSWORD_LOGIN_BUSY');busy++;try{const key=String(username||'').trim().toLowerCase(),u=users().find(u=>u.username===key);const validInput=/^[a-z0-9_-]{3,40}$/.test(key)&&typeof password==='string'&&password.length<=256;const actual=await passwordHash(validInput?password:'invalid',u?.salt||dummySalt);const expected=u?.hash||'0'.repeat(128);if(!validInput||!u?.active||expected.length!==128||!timingSafeEqual(Buffer.from(actual,'hex'),Buffer.from(expected,'hex')))return null;sync(u);return identity(u);}finally{busy--;}}};
+}
+module.exports={createPasswordUsers,newAccount};

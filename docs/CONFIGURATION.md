@@ -1,5 +1,13 @@
 # 邮箱、AI 与局域网配置
 
+## PostgreSQL 订单源
+
+复制 `.env.example` 为 `.env` 并填写 `ORDER_DATABASE_URL`。`.env` 已被 Git 忽略，连接串不得写进前端或提交仓库。运行 `npm run check:orders` 可检查 SSL、只读事务及订单相关表结构；不会读取远端邮件内容或写入远端数据库。`sslmode=require` 使用 libpq 语义，仅强制加密；如需验证服务器身份，配置可信 CA 并使用 `sslmode=verify-full`。
+
+业务启动设置 ORDER_DATABASE_URL 后，工作台直接只读查询 public.support_order_snapshots，支持按顾客邮箱显示订单、订单号/邮箱/运单号搜索、手动关联及本地备注。只把店铺标识、手动关联关系和客服备注保存在本地，不同步订单数据、不读取远端邮件。此模式停用原 Shoplazza 订单同步。数据库暂时不可用时仍可打开本地邮件，订单区域提示失败，涉及订单的发件路由等待查询恢复后校验。演示环境不连接外部数据库。
+
+部署时设置 `MAILDESK_DATA_DIR` 为服务器上的持久目录（例如 `/var/lib/maildesk`）。业务邮件、附件、草稿、授权文件与备份继续存放在该目录，默认仍为 `.preview-data`。演示数据保持在独立 `.demo-data` 中。服务重启或升级时应保留业务目录；不需要把邮件迁移到 PostgreSQL。
+
 业务配置页：启动业务服务后打开 http://127.0.0.1:4175/config 。业务环境首次启动为空数据库，只有示例店铺与邮箱，需自行添加真实账号。
 
 邮箱支持 IMAP/SMTP 自定义主机、端口、SSL/TLS 或 STARTTLS、独立登录账号及应用授权码。AI 支持自定义 Base URL、模型 ID、Responses 或 Chat Completions 格式。密码和 Key 不回显，留空保留已保存值；更换服务地址时需重新输入授权。

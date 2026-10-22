@@ -11,7 +11,7 @@ test('accounts isolate credentials, retain blank secrets, route replies by inbou
  assert.equal(a.config('zoho',inbox.id).password,'mail-secret');assert.equal(a.config('smtp',inbox.id).password,'send-secret');assert.equal(values.zoho.password,'original-secret');assert.equal(a.enabled('zoho',inbox.id),false);assert.ok(!JSON.stringify(a.list()).includes('secret'));
  assert.throws(()=>a.save({...input,id:inbox.id,address:'changed@example.com'}),/ACCOUNT_IDENTITY_IMMUTABLE/);assert.throws(()=>a.save(input),/ACCOUNT_ALREADY_EXISTS/);
  const mail=store.upsertMessage({inboxId:inbox.id,providerId:'1',direction:'inbound',customerEmail:'customer@example.com',fromAddress:'customer@example.com',toAddresses:[input.address],sentAt:new Date().toISOString(),bodyText:'hello'});
- assert.equal(store.detail(mail.customerId).work.assignee_id,'staff');
+ assert.equal(store.detail(mail.customerId).work.assignee_id,null);
  const route=a.reply(mail.id);assert.equal(route.pilot.address,input.address);assert.equal(route.config.password,'send-secret');store.db.prepare('INSERT OR REPLACE INTO app_settings VALUES(?,?)').run('sending_mode','real');let sent;
  const result=await sendReply(store,route.config,route.pilot,{requestId:randomUUID(),messageId:mail.id,text:'test'},(config,address)=>{assert.equal(config.password,'send-secret');assert.equal(address,input.address);return{sendMail:async m=>{sent=m;return{accepted:[m.to]};},close(){}};});
  assert.equal(result.status,'accepted');assert.equal(sent.from,'second@example.com');assert.equal(sent.to,'customer@example.com');
@@ -19,4 +19,22 @@ test('accounts isolate credentials, retain blank secrets, route replies by inbou
 });
 test('failed encrypted save does not expose a new account',()=>{const s=new Store(':memory:');try{const a=accounts(s,{get:()=>({}),set:()=>{throw Error('SECURE_STORAGE_UNAVAILABLE');}},{});assert.throws(()=>a.save({provider:'shoplazza',name:'test',domain:'test.myshoplaza.com',token:'secret'}),/SECURE_STORAGE_UNAVAILABLE/);assert.equal(s.counts().shops,0);}finally{s.close();}});
 
-test('A-shop order routes B-inbox reply through A and blocks unrelated mailbox',async()=>{const s=new Store(':memory:');try{for(const id of ['a','b']){s.addShop({id,name:id,domain:id+'.myshoplaza.com'});s.addInbox({id,address:id+'@example.com'});s.linkInboxShop(id,id);}s.addStaff({id:'staff',name:'staff'});s.db.prepare('INSERT INTO app_settings VALUES(?,?)').run('sending_mode','real');const a=accounts(s,{get:()=>({password:'secret',username:'a@example.com'})},{actor:'staff'});const m=s.upsertMessage({inboxId:'b',providerId:'b1',direction:'inbound',customerEmail:'buyer@example.com',fromAddress:'buyer@example.com',sentAt:new Date()});const o=s.upsertOrder({shopId:'a',providerId:'1',number:'A1',customerEmail:'buyer@example.com',currency:'USD',total:'10'});const route=a.reply(m.id);assert.equal(route.pilot.inboxId,'a');assert.equal(route.pilot.sourceInboxId,'b');assert.throws(()=>a.reply(m.id,o.id,'b'),/REPLY_SHOP_INBOX_MISMATCH/);let sent;await sendReply(s,route.config,route.pilot,{requestId:randomUUID(),messageId:m.id,text:'reply'},()=>({sendMail:async mail=>{sent=mail;return{accepted:[mail.to]};},close(){}}));assert.equal(sent.from,'a@example.com');assert.equal(s.db.prepare('SELECT from_address FROM outgoing_routes').get().from_address,'a@example.com');s.upsertOrder({shopId:'b',providerId:'2',number:'B1',customerEmail:'buyer@example.com',currency:'USD',total:'20'});assert.throws(()=>a.reply(m.id),/REPLY_ORDER_REQUIRED/);assert.equal(a.reply(m.id,o.id).pilot.address,'a@example.com');assert.throws(()=>a.reply(m.id,'unrelated'),/ORDER_CUSTOMER_MISMATCH/);s.db.prepare('DELETE FROM inbox_shops WHERE shop_id=?').run('a');assert.throws(()=>a.reply(m.id,o.id),/SHOP_REPLY_INBOX_REQUIRED/);}finally{s.close();}});
+test('reply prefers contacted inbox, then unique order-shop match, otherwise picks most recently contacted inbox',()=>{
+ const s=new Store(':memory:');try{
+  for(const id of ['a','b','c']){s.addShop({id,name:id,domain:id+'.myshoplaza.com'});s.addInbox({id,address:id+'@example.com'});s.linkInboxShop(id,id);}
+  const a=accounts(s,{get:()=>({password:'secret'})},{});
+  const incoming=id=>s.upsertMessage({inboxId:id,providerId:id+'1',direction:'inbound',customerEmail:'buyer@example.com',fromAddress:'buyer@example.com',sentAt:id==='a'?'2026-10-21T10:00:00Z':'2026-10-20T10:00:00Z'});
+  const m=incoming('b');const orders=[{id:'order-a',shop_id:'a'},{id:'order-c',shop_id:'c'}];
+  assert.equal(a.reply(m.id,'order-a',undefined,orders).pilot.inboxId,'b');
+  assert.throws(()=>a.reply(m.id,'order-a','a',orders),/REPLY_SHOP_INBOX_MISMATCH/);
+  incoming('a');
+  assert.equal(a.reply(m.id,'order-a',undefined,orders).pilot.inboxId,'a');
+  assert.equal(a.reply(m.id,'order-c',undefined,orders).pilot.inboxId,'a');
+  assert.equal(a.reply(m.id,'order-c','b',orders).pilot.inboxId,'b');
+  assert.equal(a.reply(m.id,undefined,undefined,orders).pilot.inboxId,'a');
+  s.linkInboxShop('b','a');
+  assert.equal(a.reply(m.id,'order-a',undefined,orders).pilot.inboxId,'a');
+  assert.equal(a.reply(m.id,'order-a','a',orders).pilot.inboxId,'a');
+  assert.throws(()=>a.reply(m.id,'unrelated',undefined,orders),/ORDER_CUSTOMER_MISMATCH/);
+ }finally{s.close();}
+});

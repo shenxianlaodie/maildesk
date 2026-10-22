@@ -10,12 +10,14 @@
     "start": "node scripts/start-desk.cjs",
     "start:business": "node scripts/start-desk.cjs --business",
     "start:lan": "node scripts/start-lan.cjs",
+    "check:orders": "node scripts/check-order-database.cjs",
     "test": "node --test --test-concurrency=1 tests/*.test.cjs"
   },
   "dependencies": {
     "imapflow": "2.0.5",
     "mailparser": "3.9.28",
-    "nodemailer": "10.0.10"
+    "nodemailer": "10.0.10",
+    "pg": "^8.23.1"
   },
   "license": "MIT",
   "packageManager": "pnpm@10.34.7",

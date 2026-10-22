@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Maildesk 物流读取助手",
+  "version": "1.2.0",
+  "description": "自动读取当前客服页面内的17TRACK物流结果，回传用于邮件分类。",
+  "permissions": [
+    "scripting",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "https://chat.thinkpro.top/*",
+    "https://extcall.17track.net/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chat.thinkpro.top/maildesk/*"
+      ],
+      "js": [
+        "bridge.js"
+      ]
+    }
+  ]
+}

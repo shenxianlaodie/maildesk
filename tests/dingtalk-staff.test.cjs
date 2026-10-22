@@ -1,0 +1,22 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {Store}=require('../backend/database.cjs');
+const {createDingtalk}=require('../backend/dingtalk.cjs');
+test('backfill and future logins sync staff without duplicates or role changes',async t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'ding-staff-')),filename=path.join(dir,'users.json'),store=new Store(':memory:');
+ t.after(()=>{store.close();fs.rmSync(dir,{recursive:true,force:true});});
+ const existing=[{corpId:'corp',unionId:'old',name:'Existing',role:'admin'},{corpId:'other',unionId:'foreign',name:'Foreign',role:'staff'}];
+ fs.writeFileSync(filename,JSON.stringify(existing));
+ let nick='New Agent',corp='corp';
+ const options={clientId:'id',clientSecret:'secret',corpId:'corp',redirectUri:'https://example.com/callback',filename,fetchImpl:async url=>({ok:true,json:async()=>url.includes('userAccessToken')?{corpId:corp,accessToken:'token'}:{unionId:'new',nick}})};
+ const auth=createDingtalk(options);auth.connectStaff(store);
+ const rows=()=>store.db.prepare('SELECT * FROM staff ORDER BY id').all();
+ assert.equal(rows().length,1);assert.equal(rows()[0].display_name,'Existing');
+ const login=async()=>{const a=auth.start();return auth.finish(new URLSearchParams({state:new URL(a.url).searchParams.get('state'),authCode:'code'}),a.browser);};
+ assert.equal((await login()).role,'staff');assert.equal(rows().length,2);
+ const id=rows().find(r=>r.display_name==='New Agent').id;
+ nick='Renamed';await login();assert.equal(rows().length,2);assert.equal(rows().find(r=>r.id===id).display_name,'Renamed');
+ createDingtalk(options).connectStaff(store);assert.equal(rows().length,2);
+ store.db.prepare('UPDATE staff SET active=0 WHERE id=?').run(id);await login();assert.equal(rows().find(r=>r.id===id).active,0);
+ corp='other';await assert.rejects(login(),/CORP_DENIED/);assert.equal(rows().length,2);
+ assert.equal(JSON.parse(fs.readFileSync(filename))[0].role,'admin');
+});

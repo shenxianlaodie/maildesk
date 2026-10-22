@@ -3,6 +3,8 @@
 .preview-data/
 .demo-data/
 .lan-access.json
+.ssh-known-hosts
+.server-access.json
 局域网测试入口.txt
 credentials.dpapi*
 *.sqlite
@@ -23,3 +25,28 @@ handoff/
 *.log
 *.original
 .DS_Store
+
+# Local review snapshots, exports and one-off deployment artifacts
+.*-review/
+.deploy-compare/
+*.tar.gz
+*.before-*
+reports/
+17track-inspect.txt
+ai-classification-*.json
+ai-classification-*.txt
+ai-classification-trial.cjs
+*-preview.png
+deploy/*patch*.json
+deploy/apply-*.py
+deploy/*.snippet.js
+deploy/add-*.cjs
+deploy/patch-*.cjs
+deploy/auto-signature.cjs
+deploy/sync-dingtalk-staff.cjs
+deploy/provision-customer-accounts.cjs
+deploy/.update-dingtalk.sh
+deploy/compact-assistant.css
+
+.pnpm-store/
+启动客服系统隧道.cmd
