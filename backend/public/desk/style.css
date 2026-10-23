@@ -32,6 +32,7 @@
 .conversation .conversation-name strong,.conversation .subject{color:#193654;font-weight:400}
 .conversation.is-unread .conversation-name strong,.conversation.is-unread .subject{font-weight:700}
 .read-envelope{display:inline-flex;flex-shrink:0;margin-left:auto;align-items:center;justify-content:center;width:24px;height:24px}
+button.read-envelope{min-height:24px;padding:2px}div.conversation{cursor:pointer;text-align:left}div.conversation:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
 .read-envelope svg{width:20px;height:20px;fill:#fff;stroke:#587495}
 .is-unread .read-envelope svg{fill:#0075dc;stroke:#0075dc}
 .is-unread .read-envelope .envelope-line{stroke:#fff;fill:none}
@@ -62,3 +63,47 @@
 .list-footer{display:flex;flex-direction:column;align-items:stretch;gap:6px;height:auto;min-height:68px;padding:7px 10px;flex-shrink:0}.pagination-summary{display:flex;align-items:center;justify-content:space-between}.pagination-controls{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap}.pagination-controls select{font-size:11px;padding:4px 2px;min-height:28px;max-width:85px}.pagination-controls .pager{display:flex;align-items:center;gap:2px;white-space:nowrap}.pagination-controls .pager button{padding:3px;min-height:28px}.pagination-controls .pager small{font-size:10px}.pagination-controls form{display:flex;align-items:center;gap:3px}.pagination-controls input{width:40px;min-height:28px;padding:3px;text-align:center;font-size:11px;-moz-appearance:textfield}.pagination-controls input::-webkit-inner-spin-button{appearance:none}.pagination-controls form button{font-size:11px;padding:3px;min-height:28px;color:#007be5}
 
 .tracking-capture-result{margin-top:10px;padding:10px;background:#f3f7fc;font-size:12px;line-height:1.6}.tracking-capture-result p{white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0}
+
+/* Mail conversation: authored reply first, quoted mail remains expandable. */
+.thread{gap:22px;padding:14px 4px 24px;scrollbar-color:#9ab2ca transparent;scrollbar-width:thin}
+.message-row,.message-row.outbound{max-width:94%;min-width:0;gap:10px}
+.message-content{max-width:76ch;min-width:0;flex:1}
+.message-meta{gap:8px;flex-wrap:wrap;font-size:11px;line-height:1.5;margin:0 0 7px;color:#536d87}
+.message-role{font-weight:600;color:#254965}.outbound .message-role{color:#075da0}
+.message-author{max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.message-meta time{font-variant-numeric:tabular-nums}
+.message-bubble{background:#fff;border:1px solid #dbe6f1;white-space:normal;font-size:14px;line-height:1.7;padding:14px 16px;color:#203c56}
+.outbound .message-bubble{background:#e5f2ff;border-color:#c8e1f5}
+.message-subject{font-size:12px;line-height:1.6;color:#385674;padding-bottom:10px;margin-bottom:12px;white-space:normal}
+.email-body{overflow-wrap:anywhere;user-select:text}.email-body p{margin:0 0 12px}.email-body p:last-child{margin-bottom:0}.email-body ul{margin:8px 0 12px;padding-left:22px}.email-body li{margin:5px 0}.email-empty{color:#536d87;font-size:12px}
+.email-quote{margin-top:14px;border-top:1px solid #d4e0eb;padding-top:8px;font-size:12px}.email-quote summary{cursor:pointer;color:#176294;padding:5px 0;min-height:30px;list-style-position:inside}.email-quote summary:hover{color:#004e87;text-decoration:underline;text-underline-offset:3px}.email-quote summary:focus-visible{outline:2px solid #0075dc;outline-offset:3px;border-radius:3px}
+.email-quote-body{padding-top:10px;color:#536d87;white-space:pre-wrap;line-height:1.65;overflow-wrap:anywhere}
+.message-actions{flex-wrap:wrap;gap:6px;margin-top:6px}.message-actions button{min-height:30px;font-size:11px}.delivery-state{white-space:normal;margin-left:4px;font-size:11px}
+.message-attachments{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid #d4e0eb}.message-attachment{margin:0;max-width:100%;min-height:36px;border:1px solid #ceddeb;background:#f8fbff;padding:7px 9px;text-align:left;gap:7px}.message-attachment span{overflow-wrap:anywhere;min-width:0}.message-attachment small{flex-shrink:0;color:#536d87}.message-attachment svg{flex-shrink:0}
+.translation{font-size:13px;line-height:1.7;padding:12px 14px}.translation>strong{display:block;font-size:11px;color:#385674;margin-bottom:8px}
+@media(max-width:760px){.message-row,.message-row.outbound{max-width:98%;gap:6px}.message-bubble{font-size:13px;padding:12px}.message-meta{gap:5px;font-size:10px}.message-author{max-width:16ch}.message-content{max-width:calc(100% - 31px)}.message-actions button{min-height:36px}.email-quote summary{min-height:36px}.thread{gap:18px}}
+
+/* Account-scoped inbox tabs */
+.list-tabs{gap:8px;padding-left:12px;padding-right:10px;align-items:stretch}.list-tabs [data-tab]{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;padding:10px 0;flex:1;font-size:11px;line-height:1.4}.list-tabs [data-tab="unreplied"]{flex:1.9}.list-tab-label{white-space:nowrap}.list-tab-count{font-size:11px;font-variant-numeric:tabular-nums}.list-tabs #toggle-filters{flex-shrink:0;align-self:center;width:30px;padding:5px}
+
+/* Account-specific quick phrases and overflow drawer. */
+.quick-phrases{overflow:visible;min-width:0;position:relative;gap:4px;white-space:nowrap}
+.phrase-inline{display:flex;gap:4px;min-width:0;flex:1;overflow:hidden}
+.quick-phrases [hidden]{display:none!important}
+.quick-phrases .phrase-choice{flex:none;max-width:240px;overflow:hidden;text-overflow:ellipsis;cursor:grab}
+.quick-phrases .phrase-more{flex:none}
+.phrase-drawer{box-sizing:border-box;inset:auto;margin:0;padding:12px;background:white;color:#143757;border:1px solid #c5d9ec;border-radius:10px;overflow:auto;white-space:normal;font:12px/1.5 system-ui,sans-serif}
+.phrase-drawer-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.phrase-drawer-head span{flex:1;color:#587495;font-size:11px}
+.phrase-drawer-list{display:flex;flex-direction:column;gap:2px}
+.phrase-entry{border-radius:6px;cursor:grab}
+.phrase-drawer .phrase-use{display:block;width:100%;text-align:left;padding:8px;color:#143757;cursor:grab}
+.phrase-use strong{display:block;color:#006ec8;font-size:12px}
+.phrase-use span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;color:#587495;font-size:12px;margin-top:3px}
+.phrase-entry:hover,.quick-phrases .phrase-choice:hover{background:#edf6ff}
+.phrase-drop{outline:2px solid #0075dc;outline-offset:-2px;background:#e4f2ff}
+.phrase-drawer .phrase-manage{margin-top:10px;color:#006ec8}
+.quick-phrases button:focus-visible{outline:2px solid #0075dc;outline-offset:-2px}
+.phrase-drawer:popover-open{display:flex;flex-direction:column;overflow:hidden}
+.phrase-drawer-head,.phrase-drawer .phrase-manage{flex:none}
+.phrase-drawer-list{min-height:0;overflow:auto;overscroll-behavior:contain}
+.phrase-use strong,.phrase-use span{overflow-wrap:anywhere}

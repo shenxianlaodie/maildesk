@@ -50,3 +50,6 @@ deploy/compact-assistant.css
 
 .pnpm-store/
 启动客服系统隧道.cmd
+
+# Local deployment rollback copies
+*.before-*
