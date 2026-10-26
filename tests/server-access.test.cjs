@@ -18,6 +18,11 @@ for(const basePath of ['', '/maildesk'])test('HTTPS gateway requires current Din
  const sync=await request('/admin/api/sync',{method:'POST',headers:{Cookie:cookie,Authorization:'Bearer '+token,Origin:'https://desk.example.com','Content-Type':'application/json'},body:JSON.stringify({provider:'zoho'})});assert.equal(sync.status,400);
  const adminStats=JSON.parse((await request('/api/desk/reply-stats',{headers:{Cookie:cookie,Authorization:'Bearer '+token}})).text);assert.ok(adminStats.rows.some(r=>r.id==='other-agent'));
  role='staff';const ownStats=JSON.parse((await request('/api/desk/reply-stats?staffId=other-agent&role=admin',{headers:{Cookie:cookie,Authorization:'Bearer '+token,'x-maildesk-staff':'other-agent','x-maildesk-role':'admin'}})).text);assert.equal(ownStats.rows.length,1);assert.equal(ownStats.rows[0].id,ownId);assert.equal(ownStats.total,0);
+ app.store.db.prepare('INSERT INTO templates VALUES(?,?,?,?,?)').run('sort-test','Sort test','','test',new Date().toISOString());
+ const sorted=await request('/api/desk/template-order',{method:'POST',headers:{Cookie:cookie,Authorization:'Bearer '+token,Origin:'https://desk.example.com','Content-Type':'application/json','x-maildesk-staff':'other-agent'},body:JSON.stringify({ids:['sort-test'],actor:'other-agent'})});assert.equal(sorted.status,200);assert.equal(JSON.parse(sorted.text).templateOrder[0],'sort-test');
+ const ownOrder=await request('/api/desk/template-order',{headers:{Cookie:cookie,Authorization:'Bearer '+token}});assert.equal(ownOrder.status,200);assert.equal(JSON.parse(ownOrder.text).templateOrder[0],'sort-test');assert.ok(app.store.db.prepare('SELECT value FROM app_settings WHERE key=?').get('template_order:'+ownId));assert.equal(app.store.db.prepare('SELECT value FROM app_settings WHERE key=?').get('template_order:other-agent'),undefined);
+
+
 assert.equal((await request('/admin/api/settings',{headers:{Cookie:cookie,Authorization:'Bearer '+token}})).status,403);role='admin';
  const logout=await request('/admin/logout',{method:'POST',headers:{Cookie:cookie,Origin:'https://desk.example.com'}});assert.equal(logout.status,303);assert.equal((await request('/admin/api/settings',{headers:{Cookie:cookie}})).status,401);
  }finally{await gateway.close();await app.close();}
