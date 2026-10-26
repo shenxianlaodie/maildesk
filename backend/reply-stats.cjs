@@ -22,4 +22,10 @@ function replyStats(db,params){
  const rows=db.prepare('SELECT id,display_name,active FROM staff').all().filter(s=>(s.active&&s.id!=='local-operator')||byId.has(s.id)).map(s=>({id:s.id,name:s.id==='local-operator'?'历史未归属（本机操作员）':s.display_name,code:codes.find(c=>c.staffId===s.id)?.code||'',count:byId.get(s.id)||0,active:!!s.active})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'zh-CN'));
  return {date,period,hour:period==='hour'?Number(hour):null,timezone:'Asia/Shanghai',start:new Date(start).toISOString(),end:new Date(end).toISOString(),total:counts.reduce((n,r)=>n+r.count,0),rows};
 }
-module.exports={staffHeaders,sendingActor,replyStats};
+function visibleReplyStats(data,identity){
+ if(identity?.role==='admin')return data;
+ const id=require('./staff-identity.cjs').staffId(identity);
+ const rows=id?data.rows.filter(row=>row.id===id):[];
+ return{date:data.date,period:data.period,hour:data.hour,timezone:data.timezone,start:data.start,end:data.end,total:rows.reduce((sum,row)=>sum+row.count,0),rows};
+}
+module.exports={staffHeaders,sendingActor,replyStats,visibleReplyStats};
