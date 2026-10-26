@@ -28,3 +28,13 @@ test('authenticated sender overrides forged headers; SMTP retries count one acce
  }finally{store.close();}
 });
 test('statistics read is allowed for ordinary staff; no write endpoint is exposed',()=>{const {permitted}=require('../backend/lan/proxy.cjs');assert.equal(permitted('GET','/api/desk/reply-stats'),true);assert.equal(permitted('POST','/api/desk/reply-stats'),false);});
+
+test('stats visibility is bound to authenticated identity, includes only own total, and fails closed',()=>{
+ const {visibleReplyStats}=require('../backend/reply-stats.cjs');
+ for(const identity of [{corpId:'corp',unionId:'one',role:'staff'},{auth:'password',username:'Agent',role:'staff'}]){
+ const id=staffHeaders({},identity)['x-maildesk-staff'];const data={date:'2026-10-26',period:'day',total:233,rows:[{id,name:'Self',count:104},{id:'other',name:'Other',count:129}]};
+ const own=visibleReplyStats(data,identity);assert.equal(own.total,104);assert.equal(own.rows.length,1);assert.equal(own.rows[0].id,id);
+ assert.equal(visibleReplyStats(data,{...identity,role:'admin'}),data);
+ assert.deepEqual(visibleReplyStats(data,null).rows,[]);assert.equal(visibleReplyStats(data,null).total,0);
+ }
+});
