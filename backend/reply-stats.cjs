@@ -2,7 +2,7 @@
 const {createHash}=require('node:crypto');
 const {readSignatures}=require('./signatures.cjs');
 function staffHeaders(headers,identity){
- const result={...headers};delete result['x-maildesk-staff'];
+ const result={...headers};delete result['x-maildesk-staff'];delete result['x-maildesk-role'];result['x-maildesk-role']=identity?.role==='admin'?'admin':'staff';
  const id=require('./staff-identity.cjs').staffId(identity);if(id)result['x-maildesk-staff']=id;
  return result;
 }

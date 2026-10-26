@@ -37,4 +37,4 @@ function createReplyWorker(store,vault,orders,{interval=1000,concurrency=2,gener
  function tick(){if(stopped)return;while(active.size<concurrency){const p=processNext();active.add(p);p.catch(()=>{}).finally(()=>active.delete(p));}timer=setTimeout(tick,interval);timer.unref();}
  return{processNext,start:tick,async close(){stopped=true;clearTimeout(timer);await Promise.allSettled([...active]);}};
 }
-module.exports={installReplies,enqueue,cachedReply,contextFor,createReplyWorker};
+module.exports={instructions,installReplies,enqueue,cachedReply,contextFor,createReplyWorker};
