@@ -53,3 +53,6 @@ deploy/compact-assistant.css
 
 # Local deployment rollback copies
 *.before-*
+
+# Private order address queue credentials
+order-address-writer-credentials.json
