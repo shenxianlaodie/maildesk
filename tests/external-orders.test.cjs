@@ -17,13 +17,13 @@ test('business HTTP reads remote orders on demand; links, notes and mail stay lo
   assert.equal((await request('orders?q=O-100')).body[0].id,'pg:123');
   const beforeSearch=reads.length;assert.equal((await request('desk/conversations?q='+encodeURIComponent(row.customer_email))).body.total,1);assert.equal(reads.length,beforeSearch);await request('desk/conversations?q=Help&scope=mail');assert.equal(reads.length,beforeSearch);
   const before=reads.length;const deferred=await request('desk/customers/'+message.customerId+'?orders=defer');assert.equal(reads.length,before);assert.equal(deferred.body.ordersLoading,true);assert.equal(deferred.body.messages[0].body_text,'Local mail');assert.equal((await request('desk/customers/'+message.customerId+'?orders=only')).body.orders[0].id,'pg:123');
-  const readsBeforeAssistant=reads.length;const combined=await request('desk/customers/'+message.customerId+'?orders=only');assert.equal(combined.body.assistant.mode,'pending');assert.equal(combined.body.assistant.text,'');assert.equal(reads.length,readsBeforeAssistant+1);
+  const readsBeforeAssistant=reads.length;const combined=await request('desk/customers/'+message.customerId+'?orders=only');assert.equal(combined.body.assistant.mode,'pending');assert.equal(combined.body.assistant.text,'');assert.equal(reads.length,readsBeforeAssistant);
   const d=await request('desk/customers/'+message.customerId);assert.equal(d.body.messages[0].body_text,'Local mail');assert.equal(d.body.orders[0].order_number,'O-100');
   assert.equal((await request('desk/conversations?q=O-100')).body.total,1);
   const route=await request('reply-route',{messageId:message.id,orderId:'pg:123',inboxId:PILOT.inboxId});assert.equal(route.status,200);assert.equal(route.body.shopId,shopId(row.store_subdomain));
   assert.equal((await request('reply-route',{messageId:message.id,orderId:'pg:999'})).body.error,'ORDER_CUSTOMER_MISMATCH');
-  assert.equal((await request('desk/order',{orderId:'pg:123',address:'Local correction'})).status,200);
-  assert.equal((await request('desk/customers/'+message.customerId)).body.orders[0].local.address,'Local correction');assert.equal(row.shipping_address_json.address1,'Original address');
+  assert.equal((await request('desk/order',{orderId:'pg:123',address:'Local correction'})).body.error,'ADDRESS_QUEUE_REQUIRED');assert.equal((await request('desk/order',{orderId:'pg:123',product:'Local product note'})).status,200);
+  assert.equal((await request('desk/customers/'+message.customerId)).body.orders[0].local.product,'Local product note');assert.equal(row.shipping_address_json.address1,'Original address');
   assert.equal((await request('order-links',{customerId:other,orderId:'pg:123'})).status,200);assert.equal((await request('desk/customers/'+other)).body.orders[0].id,'pg:123');
   assert.equal((await request('order-links',{customerId:other,orderId:'pg:999'})).body.error,'ORDER_NOT_FOUND');
   assert.equal((await request('sync',{provider:'shoplazza'})).body.error,'EXTERNAL_ORDERS_READ_ONLY');
