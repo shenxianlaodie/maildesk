@@ -107,3 +107,5 @@ button.read-envelope{min-height:24px;padding:2px}div.conversation{cursor:pointer
 .phrase-drawer-head,.phrase-drawer .phrase-manage{flex:none}
 .phrase-drawer-list{min-height:0;overflow:auto;overscroll-behavior:contain}
 .phrase-use strong,.phrase-use span{overflow-wrap:anywhere}
+
+.quick-phrases .phrase-choice.phrase-active,.phrase-entry.phrase-active{background:rgba(0,117,220,.09);box-shadow:inset 0 0 0 1px rgba(0,117,220,.38);border-radius:5px}

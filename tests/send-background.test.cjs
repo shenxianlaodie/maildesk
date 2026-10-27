@@ -3,7 +3,7 @@ const source=fs.readFileSync(path.join(__dirname,'../backend/public/desk/app.js'
 const tick=()=>new Promise(r=>setImmediate(r));
 function fixture(){
  const state={id:'a',draft:'reply A',orderId:'order A',files:[],meta:{demo:false},loadSeq:1},calls=[],waiting=[],selected=[],selectors=[],controls={};
- const context=vm.createContext({state,Map,Promise,FileReader:class{},drafts:new Map(),replySignatures:new Map(),toast:()=>{},replyBody:()=>state.draft,lastInbound:()=>({id:'message '+state.id}),requestUUID:()=> 'request '+state.id,
+ const context=vm.createContext({state,Map,Promise,FileReader:class{},drafts:new Map(),replySignatures:new Map(),replyTemplates:new Map(),toast:()=>{},replyBody:()=>state.draft,lastInbound:()=>({id:'message '+state.id}),requestUUID:()=> 'request '+state.id,
  $:s=>controls[state.id+s]||=(s==='#reply-inbox'?{value:'inbox '+state.id}: {disabled:false}),
  $$:s=>{selectors.push(s);return [context.$('#send')];},saveDraft:async()=>{},renderWorkspace:()=>{context.$('#send').disabled=false;},selectCustomer:async id=>{selected.push(id);},
  api:async(route,input)=>{calls.push(input);return new Promise((resolve,reject)=>waiting.push({resolve,reject}));}});
