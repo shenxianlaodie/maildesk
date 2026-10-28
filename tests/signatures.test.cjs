@@ -18,7 +18,7 @@ test('composer toggles without deleting body, follows edits and restores saved s
  const text=fs.readFileSync(require.resolve('../backend/public/desk/app.js'),'utf8'),snippet=text.slice(text.indexOf('const replySignatures='),text.lastIndexOf('init();'));
  const state={id:'a',draft:'Hello',meta:{signature:{text:'Best regards,\nDADA\nCustomer Support Team'}}},button={setAttribute(){}};
  let context;const area={value:state.draft,focus(){},setSelectionRange(){},dispatchEvent(){vm.runInContext('{const r=signatureRangeAfterEdit(state.draft,area.value,replySignatures.get(state.id));if(r)replySignatures.set(state.id,r);else replySignatures.delete(state.id);state.draft=area.value;}',context);}};
- const notices=[];context=vm.createContext({state,area,$:s=>s==='#reply'?area:button,refreshMeta:async()=>{},toast:s=>notices.push(s),Event:class{}});vm.runInContext(snippet,context);
+ const notices=[];context=vm.createContext({sendingReplies:new Map(),state,area,$:s=>s==='#reply'?area:button,refreshMeta:async()=>{},toast:s=>notices.push(s),Event:class{}});vm.runInContext(snippet,context);
  await vm.runInContext('toggleSignature()',context);assert.equal(area.value,'Hello\n\n'+state.meta.signature.text);
  area.value='Edited '+area.value;area.dispatchEvent();await vm.runInContext('toggleSignature()',context);assert.equal(area.value,'Edited Hello');
  await vm.runInContext('toggleSignature()',context);area.value+='\nPS';area.dispatchEvent();await vm.runInContext('toggleSignature()',context);assert.equal(area.value,'Edited Hello\nPS');

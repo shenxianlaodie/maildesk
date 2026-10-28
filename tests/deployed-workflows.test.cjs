@@ -81,7 +81,7 @@ test('automatic IMAP sync enforces exact cutoff and defers large messages withou
 });
 test('email presentation escapes customer text and keeps quoted original available',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../backend/public/desk/app.js'),'utf8');
- const context=vm.createContext({});vm.runInContext(source.match(/const esc=.*\n/)[0]+source.slice(source.indexOf('function splitEmailQuote('),source.indexOf('\nfunction renderThread(')),context);
+ const context=vm.createContext({});vm.runInContext(source.match(/const esc=.*\r?\n/)[0]+source.slice(source.indexOf('function splitEmailQuote('),source.indexOf('\nfunction renderThread(')),context);
  const html=context.emailBody('My reply <script>alert(1)</script>\n\nOn Thu, a customer wrote:\n> original <img src=x>');
  assert.ok(html.includes('<details class="email-quote">'));assert.ok(html.includes('&lt;script&gt;'));assert.ok(html.includes('original &lt;img src=x&gt;'));assert.ok(!html.includes('<script>'));
  assert.equal(context.splitEmailQuote('Only original text').quote,'');

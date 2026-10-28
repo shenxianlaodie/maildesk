@@ -10,12 +10,23 @@ function validate(input){
  for(const [k,v]of Object.entries(input.patch))if(!fields.includes(k)||typeof v!=='string'||[...v].length>1000)throw Error('invalid_address_field');
 }
 function localAddress(a){return {recipient:[a.first_name,a.last_name].filter(Boolean).join(' ')||a.name||'',phone:[a.phone_area_code,a.phone].filter(Boolean).join(' '),address:[a.address,a.address1,a.city,a.province,a.zip,a.country||a.country_code].filter(Boolean).join(', ')};}
-function createAddressQueue(credentials,{PoolImpl=Pool,onSuccess=async()=>{},audit=()=>{}}={}){
+function addressWindow(o,now){
+ const value=o.ordered_at;
+ const parts=typeof value==='string'&&/^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/i.exec(value.trim());
+ const year=parts?Number(parts[1]):0,month=parts?Number(parts[2]):0,day=parts?Number(parts[3]):0;
+ const days=[31,year%4===0&&(year%100!==0||year%400===0)?29:28,31,30,31,30,31,31,30,31,30,31];
+ const valid=parts&&month>=1&&month<=12&&day>=1&&day<=days[month-1];
+ const placed=valid?Date.parse(value):NaN;
+ if(!Number.isFinite(placed)||placed>now)return {allowed:false,error:'ORDER_ADDRESS_TIME_UNKNOWN'};
+ const deadline=placed+48*60*60*1000;
+ return {allowed:now<=deadline,error:now<=deadline?null:'ORDER_ADDRESS_WINDOW_EXPIRED',deadline:new Date(deadline).toISOString()};
+}
+function createAddressQueue(credentials,{PoolImpl=Pool,now=Date.now,onSuccess=async()=>{},audit=()=>{}}={}){
  const pool=new PoolImpl(options(credentials));pool.on('error',()=>{});
  async function query(sql,args=[]){try{return(await pool.query(sql,args)).rows;}catch(e){const known=['invalid_address_field','invalid_address_payload','invalid_request_identity','idempotency_key_reused','active_address_request_exists','store_unavailable','order_not_found'];const code=known.find(k=>String(e.message).includes(k));throw Error(code||'ADDRESS_QUEUE_UNAVAILABLE');}}
  async function identity(order){
   const domain=String(order.shop_domain||''),sub=domain.replace(/\.myshoplaza\.com$/i,'');
-  const rows=await query('SELECT store_subdomain,order_id,order_number,shipping_address_json FROM public.support_order_snapshots WHERE store_subdomain IN ($1,$2) AND order_id=$3 ORDER BY updated_at DESC,id DESC LIMIT 1',[domain,sub,order.provider_id]);
+  const rows=await query('SELECT store_subdomain,order_id,order_number,shipping_address_json,COALESCE(NULLIF(raw_order_json->>\'placed_at\',\'\'),raw_order_json->>\'created_at\') AS ordered_at FROM public.support_order_snapshots WHERE store_subdomain IN ($1,$2) AND order_id=$3 ORDER BY updated_at DESC,id DESC LIMIT 1',[domain,sub,order.provider_id]);
   if(!rows.length)throw Error('order_not_found');return rows[0];
  }
  async function finish(order,r){
@@ -25,12 +36,18 @@ function createAddressQueue(credentials,{PoolImpl=Pool,onSuccess=async()=>{},aud
  }
  async function read(order){const o=await identity(order),args=[o.store_subdomain,o.order_id];
   const rows=await query(`SELECT ${requestColumns} FROM public.support_shipping_address_requests WHERE store_subdomain=$1 AND order_id=$2 ORDER BY CASE WHEN ${active} THEN 0 ELSE 1 END,id DESC LIMIT 1`,args);
-  return {address:o.shipping_address_json||{},request:await finish(order,rows[0]||null)};
+  return {eligibility:addressWindow(o,now()),address:o.shipping_address_json||{},request:await finish(order,rows[0]||null)};
  }
  async function status(order,id){if(!/^[1-9]\d*$/.test(id||''))throw Error('invalid_request_identity');const o=await identity(order);
   const rows=await query(`SELECT ${requestColumns} FROM public.support_shipping_address_requests WHERE id=$1::bigint AND store_subdomain=$2 AND order_id=$3`,[id,o.store_subdomain,o.order_id]);if(!rows.length)throw Error('order_not_found');return finish(order,rows[0]);
  }
  async function submit(order,input,actor){validate(input);if(typeof actor!=='string'||!actor)throw Error('invalid_request_identity');const o=await identity(order);const who='maildesk:'+actor;
+  const window=addressWindow(o,now());
+  if(!window.allowed){
+   // Expired retries may recover an existing request; the SQL function still checks the full payload.
+   const existing=await query("SELECT id::text FROM public.support_shipping_address_requests WHERE source='maildesk' AND idempotency_key=$1 AND store_subdomain=$2 AND order_id=$3 AND actor=$4",[input.idempotencyKey,o.store_subdomain,o.order_id,who]);
+   if(!existing.length)throw Error(window.error);
+  }
   const rows=await query('SELECT public.support_submit_shipping_address_change($1::text,$2::text,$3::jsonb,$4::jsonb,$5::text,$6::text)::text AS request_id',[o.store_subdomain,o.order_id,JSON.stringify(input.patch),JSON.stringify(input.expected),who,input.idempotencyKey]);
   const id=String(rows[0].request_id);audit(actor,'order.address_request',order.id,{requestId:id});
   return status(order,id);

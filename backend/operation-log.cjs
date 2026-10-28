@@ -5,7 +5,7 @@ const {DatabaseSync}=require('node:sqlite');
 const actions={
  '/api/read':'标记为未读',
  '/api/customer-labels':'修改顾客标签','/api/desk/profile':'修改顾客资料','/api/desk/order':'修改订单备注',
- '/api/desk/send-demo':'保存演示回复','/api/send':'发送邮件','/api/order-links':'关联订单',
+ '/api/desk/send-demo':'保存演示回复','/api/send':'发送邮件','/api/compose':'新建邮件','/api/order-links':'关联订单',
  '/api/classify':'邮件分类','/api/templates':'管理话术','/api/labels':'管理标签',
  '/api/settings/mailbox-permissions':'设置邮箱权限','/api/settings/signatures':'修改客服签名','/api/settings/ai':'修改 AI 配置','/api/settings/mailbox':'修改邮箱配置',
  '/api/settings/sending':'修改发信策略','/api/accounts':'修改店铺配置','/api/sync':'发起邮件同步'

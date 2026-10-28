@@ -19,7 +19,7 @@ function createScope(store,actor,ids){
  const denied=()=>{throw Error('MAILBOX_FORBIDDEN');};
  const inbox=id=>{if(!allowed.has(id))denied();};
  const message=id=>{const m=db.prepare('SELECT * FROM messages WHERE id=?').get(id);if(!m||!allowed.has(m.inbox_id))denied();return m;};
- const customer=id=>{if(!db.prepare('SELECT 1 FROM messages WHERE customer_id=? AND inbox_id IN(SELECT value FROM json_each(?))').get(id,JSON.stringify(ids)))denied();};
+ const customer=id=>{if(!db.prepare('SELECT 1 FROM messages WHERE customer_id=? AND inbox_id IN(SELECT value FROM json_each(?)) UNION ALL SELECT 1 FROM outgoing o JOIN outgoing_routes r ON r.outgoing_id=o.id WHERE o.customer_id=? AND r.inbox_id IN(SELECT value FROM json_each(?)) LIMIT 1').get(id,JSON.stringify(ids),id,JSON.stringify(ids)))denied();};
  const outgoing=id=>{const r=db.prepare('SELECT inbox_id FROM outgoing_routes WHERE outgoing_id=?').get(id);if(!r||!allowed.has(r.inbox_id))denied();};
  const filterOrders=rows=>rows.filter(o=>shops.has(o.shop_id));
  function work(id,w){return{...w,draft:db.prepare('SELECT draft FROM mailbox_drafts WHERE scope_key=? AND customer_id=?').get(key,id)?.draft||'',reply_inbox_id:allowed.has(w.reply_inbox_id)?w.reply_inbox_id:null};}
