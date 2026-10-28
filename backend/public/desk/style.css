@@ -109,3 +109,18 @@ button.read-envelope{min-height:24px;padding:2px}div.conversation{cursor:pointer
 .phrase-use strong,.phrase-use span{overflow-wrap:anywhere}
 
 .quick-phrases .phrase-choice.phrase-active,.phrase-entry.phrase-active{background:rgba(0,117,220,.09);box-shadow:inset 0 0 0 1px rgba(0,117,220,.38);border-radius:5px}
+
+/* Standalone compose shares the workbench visual language. */
+.compose-entry{white-space:nowrap;color:var(--blue,#0075dc)}
+.compose-dialog{width:min(680px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:0;border:1px solid #d5e2f0;border-radius:14px;color:#193654;background:white;overflow:auto}
+.compose-dialog::backdrop{background:rgba(25,54,84,.32)}
+.compose-dialog .dialog-body{padding:22px 24px}.compose-dialog label{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;font-size:13px}
+.compose-dialog input,.compose-dialog select,.compose-dialog textarea{box-sizing:border-box;width:100%;min-width:0;padding:10px 12px;border:1px solid #d5e2f0;border-radius:7px;background:white;color:#193654;font:inherit}
+.compose-dialog input:focus-visible,.compose-dialog select:focus-visible,.compose-dialog textarea:focus-visible{outline:2px solid #0075dc;outline-offset:2px}
+.compose-dialog textarea{min-height:210px;resize:vertical;line-height:1.6}.compose-addresses{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.compose-attachment-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.compose-attachment-row small{color:#536e8a}.compose-status{min-height:22px;font-size:13px;color:#536e8a;line-height:1.6;margin:16px 0}.compose-error{color:#a12e39}
+.compose-files{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.compose-file{display:flex;align-items:center;gap:6px;max-width:100%;padding:4px 8px;border-radius:6px;background:#edf5fc;font-size:12px}.compose-file>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.compose-file svg{width:16px;height:16px;flex-shrink:0}.compose-file button{padding:4px}
+.compose-success{text-align:center;padding:18px 0 26px}.compose-success h3{margin:12px 0 8px}.compose-success p{overflow-wrap:anywhere;color:#536e8a}.compose-success-icon{display:inline-grid;place-items:center;width:42px;height:42px;background:#e4f6ee;color:#16784e;border-radius:50%}.compose-dialog .form-actions{display:flex;gap:10px;justify-content:flex-end}.compose-dialog button:disabled{opacity:.6;cursor:default}
+@media(max-width:600px){.compose-addresses{grid-template-columns:1fr;gap:0}.compose-dialog .dialog-body{padding:16px}.compose-dialog textarea{min-height:160px}}
+
+.compose-dialog #compose-form{padding:0}.compose-dialog input[hidden]{display:none}.compose-held{margin-bottom:16px;color:#536e8a}.compose-held button{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px}.compose-dialog #compose-signature[aria-pressed="true"]{background:#e4f2ff;border-color:#0075dc}
