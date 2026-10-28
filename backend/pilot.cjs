@@ -86,7 +86,7 @@ function createPilot({directory=path.resolve(__dirname,'../.maildesk'),port=4174
     if(req.method==='POST'&&url.pathname==='/api/smtp-verify'){requestInput;const client=transport(vault.get('smtp'),PILOT.address);try{await client.verify();json(res,200,{verified:true});}catch{json(res,400,{error:'SMTP_VERIFY_FAILED'});}finally{client.close();}return;}
     if(req.method==='POST'&&url.pathname==='/api/compose'){
      if(demo)throw Error('DEMO_EXTERNAL_DISABLED');const input=requestInput;if(!input?.inboxId)throw Error('REPLY_INBOX_REQUIRED');scope?.inbox(input.inboxId);
-     const inbox=accountManager.source('zoho',input.inboxId);if(!accountManager.list().inboxes.some(i=>i.id===inbox.id&&i.enabled&&i.smtpConfigured))throw Error('SMTP_CONFIG_REQUIRED');
+     const inbox=accountManager.source('zoho',input.inboxId);if(!accountManager.config('smtp',inbox.id).password)throw Error('SMTP_CONFIG_REQUIRED');
      const actor=require('./reply-stats.cjs').sendingActor(store,req.headers,PILOT.actor);
      const result=await require('./compose-mail.cjs').sendNewMail(store,accountManager.config('smtp',inbox.id),{actor,inboxId:inbox.id,address:inbox.address},input);json(res,200,result);return;
     }
