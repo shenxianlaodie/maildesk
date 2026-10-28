@@ -14,6 +14,7 @@ test('HTTP compose enforces sender scope, trusts server actor and displays outbo
  const app=require('../backend/pilot.cjs').createPilot({store:s,vault:{get:()=>({password:'mock-only'}),status:()=>({})},port:19986,autoSync:false});await app.listen();const base='http://127.0.0.1:19986';
  try{const token=(await(await fetch(base+'/api/bootstrap')).json()).token;const call=async(path,body)=>{const r=await fetch(base+path,{method:body?'POST':'GET',headers:{authorization:'Bearer '+token,origin:base,'content-type':'application/json','x-maildesk-staff':actor,'x-maildesk-role':'staff'},...(body?{body:JSON.stringify(body)}:{})});return{status:r.status,data:await r.json()};};
  assert.equal((await call('/api/compose',{...input,inboxId:'other'})).status,403);assert.equal(calls,0);
+ s.db.prepare('INSERT OR REPLACE INTO app_settings VALUES(?,?)').run('enabled:zoho:i','false');
  const r=await call('/api/compose',{...input,inboxId:'i',actor:'b',attachments:[{name:'large.txt',data:Buffer.alloc(200000,65).toString('base64')}]} );assert.equal(r.status,200);assert.equal(r.data.status,'accepted');assert.equal(s.db.prepare('SELECT actor_id FROM outgoing WHERE id=?').get(input.requestId).actor_id,actor);
  const d=await call('/api/desk/customers/'+r.data.customerId);assert.equal(d.status,200);assert.equal(d.data.outgoing.length,1);assert.equal(d.data.messages.length,0);assert.equal((await call('/api/desk/conversations?inbox=i&q=Your')).data.total,1);
  }finally{await app.close();nodemailer.createTransport=original;}
