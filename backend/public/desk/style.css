@@ -124,3 +124,16 @@ button.read-envelope{min-height:24px;padding:2px}div.conversation{cursor:pointer
 @media(max-width:600px){.compose-addresses{grid-template-columns:1fr;gap:0}.compose-dialog .dialog-body{padding:16px}.compose-dialog textarea{min-height:160px}}
 
 .compose-dialog #compose-form{padding:0}.compose-dialog input[hidden]{display:none}.compose-held{margin-bottom:16px;color:#536e8a}.compose-held button{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px}.compose-dialog #compose-signature[aria-pressed="true"]{background:#e4f2ff;border-color:#0075dc}
+
+/* Conversation controls and content-sized reply editor. */
+.customer-sub .customer-email-copy{display:inline;padding:0;min-height:0;font:inherit;color:inherit;text-align:left;overflow-wrap:anywhere;border-radius:3px;cursor:pointer}
+.customer-email-copy:hover{text-decoration:underline;color:#006bc5}
+.customer-email-copy:focus-visible{outline:2px solid #007be4;outline-offset:3px}
+.assignee-badge{flex-shrink:0;font-size:11px;color:#365572;background:#e5f1fc;padding:4px 7px;border-radius:4px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conversation-assignee{display:block;font-size:10px;line-height:1.5;color:#536e8d;margin:3px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.composer #reply{resize:none;min-height:0;max-height:none;flex:none;box-sizing:border-box}
+.label-library-title{font-size:13px;margin:20px 0 12px}.label-library{display:flex;flex-wrap:wrap;gap:10px;max-height:50vh;overflow:auto;padding:2px}.label-library .tag{font-size:12px;padding:5px 9px;white-space:normal;overflow-wrap:anywhere}
+.template-entry .delete-template{color:#b7353e}.template-entry .delete-template:hover{background:#fff0ef}
+@media(max-width:760px){.customer-head{flex-wrap:wrap}.assignee-badge{max-width:120px}.customer-head .customer-actions{margin-left:auto}}
+
+.customer-title h1 .assignee-badge{display:inline-block;vertical-align:middle;margin-left:8px;font-weight:400}
