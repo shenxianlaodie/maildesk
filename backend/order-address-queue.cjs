@@ -52,6 +52,15 @@ function createAddressQueue(credentials,{PoolImpl=Pool,now=Date.now,onSuccess=as
   const id=String(rows[0].request_id);audit(actor,'order.address_request',order.id,{requestId:id});
   return status(order,id);
  }
- return {read,status,submit,close:()=>pool.end()};
+ async function customerIdentity(subdomain,reference){
+  const rows=await query(`SELECT * FROM (SELECT DISTINCT ON (order_id) id::text,store_subdomain,order_id,order_number,customer_email,
+   COALESCE(NULLIF(raw_order_json->>'email',''),customer_email) AS original_email,
+   fulfillment_status,order_status FROM public.support_order_snapshots
+   WHERE store_subdomain IN ($1,$2) AND (order_id=$3 OR order_number=$3)
+   ORDER BY order_id,updated_at DESC,id DESC) matched LIMIT 2`,[subdomain,subdomain+'.myshoplaza.com',reference]);
+  if(!rows.length||new Set(rows.map(r=>r.order_id)).size!==1)return null;
+  const r=rows[0];return {id:'pg:'+r.id,shop_domain:r.store_subdomain,provider_id:r.order_id,customer_email:r.original_email,fulfillment_status:r.fulfillment_status,order_status:r.order_status};
+ }
+ return {read,status,submit,customerIdentity,close:()=>pool.end()};
 }
 module.exports={createAddressQueue,options,validate,localAddress,fields};

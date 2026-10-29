@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Update shipping address</title><link rel="stylesheet" href="style.css"><script src="form-model.js" defer></script><script src="app.js" defer></script></head>
+<body><main>
+ <h1>Update shipping address</h1>
+ <p class="intro">You can update your shipping address within 48 hours of placing your order, before it ships.</p>
+ <p id="order-reference" hidden></p>
+ <form id="lookup"><div class="grid"><label>Order number<input name="order" autocomplete="off" required maxlength="100"></label><label>Order email<input name="email" type="email" autocomplete="email" required maxlength="254"></label></div><button type="submit">View order</button></form>
+ <form id="address" hidden><div class="grid" id="fields"></div><p class="hint">Type to search for a country or state / province. You may also enter your state / province manually.</p><button type="submit">Confirm address change</button></form>
+ <p id="notice" role="status" aria-live="polite"></p>
+ <button id="retry" type="button" class="secondary" hidden>Check request again</button>
+</main></body></html>

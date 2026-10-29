@@ -12,6 +12,7 @@ test('sort uses all customers before pagination and inbound time rather than rep
   assert.equal(rows('sort=name_desc')[0].display_name,'Customer 44');
   assert.equal(rows('sort=time_desc')[0].email,'c44@example.com');
   assert.equal(rows('sort=time_asc')[0].email,'c0@example.com');
+  assert.equal(rows('')[0].email,'c0@example.com');
   assert.throws(()=>rows('sort=invalid'),/INVALID_SORT/);
  }finally{s.close();}
 });
