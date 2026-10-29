@@ -34,7 +34,11 @@ function createOrderDatabase(connectionString,{PoolImpl=Pool}={}){
   const columns=await read("SELECT table_schema,table_name,column_name,data_type FROM information_schema.columns WHERE table_schema NOT IN ('pg_catalog','information_schema') AND table_name ~* '(order|shop|store|shipment|tracking|fulfillment)' ORDER BY table_schema,table_name,ordinal_position");
   return{connection:connection[0],columns};
  }
- const lookup=require('./order-lookup.cjs').createOrderLookup(read);
+ const lookup=require('./order-lookup.cjs').createOrderLookup(read,{coldEmailLookup:async emails=>{
+  if(!emails.length)return[];
+  const rows=await read("SELECT id::text FROM public.support_order_snapshots WHERE lower(btrim(customer_email))=ANY($1::text[]) OR lower(btrim(raw_order_json->'customer'->>'email'))=ANY($1::text[]) OR lower(btrim(shipping_address_json->>'email'))=ANY($1::text[]) OR lower(btrim(raw_order_json->>'email'))=ANY($1::text[])",[emails]);
+  return rows.map(r=>r.id);
+ }});
  return{read,inspect,lookup,close:async()=>{await lookup.close();await pool.end();}};
 }
 module.exports={connectionOptions,createOrderDatabase};
