@@ -1,0 +1,945 @@
+{% comment %}
+公共虚拟物流模块（含顾客修改地址入口）。
+仅放在店匠订单详情模板中，页面必须有 order 和 shop 对象。
+每页只放一份：替换原来的“虚拟物流模块开始”至“虚拟物流模块结束”整个区块。
+若作为 snippets/virtual_order_progress.liquid 使用：
+  include 主题：{% include 'virtual_order_progress' %}
+  render 主题：{% render 'virtual_order_progress', order: order, shop: shop %}
+店铺 ID 自动读取 shop.id；店铺需在改址服务中启用。
+客服邮箱读取 shop.contactEmail，缺失时读取 shop.email。
+原有订单信息、包裹区域和 schema 不在此模块内，不要删除。
+{% endcomment %}
+{% assign vt_support_email = shop.contactEmail | default: shop.email %}
+<script>
+(function () {
+  if (typeof window.VTRefreshYanwen === 'function') return;
+  var SCOPE_SELECTOR = '.shipment-package-container, .shipment-package, [id^="shipment-tracking-"]';
+  var trackingIds = window.VTYanwenTrackingIds = window.VTYanwenTrackingIds || Object.create(null);
+  var scanPending = false;
+
+  function normalizeTrackingId(value) {
+    return String(value || '').trim().toUpperCase();
+  }
+
+  function createBrandNode() {
+    var span = document.createElement('span');
+    span.className = 'notranslate vt-carrier-brand';
+    span.setAttribute('translate', 'no');
+    span.setAttribute('lang', 'en');
+    span.textContent = 'Yanwen';
+    return span;
+  }
+
+  function getShipment(node) {
+    var element = node && node.nodeType === 1 ? node : node && node.parentElement;
+    if (!element || !element.closest) return null;
+
+    var shipment = element.closest('.shipment-package-container');
+    if (!shipment) shipment = element.closest('.shipment-package');
+    if (shipment) return shipment;
+
+    var trackingPanel = element.closest('[id^="shipment-tracking-"]');
+    if (!trackingPanel || !trackingPanel.id) return null;
+
+    var button = document.querySelector('button[target-id="' + trackingPanel.id + '"]');
+    if (!button || !button.closest) return null;
+    return button.closest('.shipment-package-container') || button.closest('.shipment-package');
+  }
+
+  function findLineElement(node, shipment) {
+    var element = node && node.parentElement;
+    while (element && element !== shipment) {
+      if (element.tagName === 'DIV' || element.tagName === 'P' || element.tagName === 'LI') {
+        return element;
+      }
+      element = element.parentElement;
+    }
+    return node && node.parentElement;
+  }
+
+  function registerShipment(shipment) {
+    if (!shipment || shipment.getAttribute('data-vt-carrier') !== 'yanwen') return;
+
+    var buttons = shipment.querySelectorAll('button[tracking-id]');
+    for (var i = 0; i < buttons.length; i++) {
+      var trackingId = normalizeTrackingId(buttons[i].getAttribute('tracking-id'));
+      if (trackingId) trackingIds[trackingId] = true;
+    }
+  }
+
+  function protectTextNode(node) {
+    if (!node || node.nodeType !== 3 || !node.parentElement) return;
+
+    var protectedParent = node.parentElement.closest && node.parentElement.closest('.vt-carrier-brand');
+    if (protectedParent) {
+      protectedParent.setAttribute('translate', 'no');
+      protectedParent.setAttribute('lang', 'en');
+      if (protectedParent.textContent !== 'Yanwen') protectedParent.textContent = 'Yanwen';
+      return;
+    }
+
+    if (!node.parentElement.closest || !node.parentElement.closest(SCOPE_SELECTOR)) return;
+
+    var value = node.nodeValue || '';
+    var pattern = /yanwen/ig;
+    if (!pattern.test(value)) return;
+    pattern.lastIndex = 0;
+
+    var shipment = getShipment(node);
+    if (shipment) shipment.setAttribute('data-vt-carrier', 'yanwen');
+
+    var fragment = document.createDocumentFragment();
+    var lastIndex = 0;
+    var match;
+    var firstBrand = null;
+
+    while ((match = pattern.exec(value)) !== null) {
+      if (match.index > lastIndex) {
+        fragment.appendChild(document.createTextNode(value.slice(lastIndex, match.index)));
+      }
+      var brand = createBrandNode();
+      if (!firstBrand) firstBrand = brand;
+      fragment.appendChild(brand);
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < value.length) {
+      fragment.appendChild(document.createTextNode(value.slice(lastIndex)));
+    }
+
+    var line = findLineElement(node, shipment);
+    node.parentNode.replaceChild(fragment, node);
+
+    if (line) {
+      if (/[A-Z0-9]{8,}\s*·/i.test(line.textContent || '')) {
+        line.setAttribute('data-vt-yanwen-tracking-line', 'true');
+      } else {
+        line.setAttribute('data-vt-yanwen-carrier-line', 'true');
+      }
+    }
+
+    if (firstBrand) {
+      firstBrand.setAttribute('translate', 'no');
+      firstBrand.setAttribute('lang', 'en');
+    }
+    registerShipment(shipment);
+  }
+
+  function protectScope(scope) {
+    if (!scope) return;
+
+    var brands = scope.querySelectorAll ? scope.querySelectorAll('.vt-carrier-brand') : [];
+    for (var i = 0; i < brands.length; i++) {
+      brands[i].classList.add('notranslate');
+      brands[i].setAttribute('translate', 'no');
+      brands[i].setAttribute('lang', 'en');
+      if (brands[i].textContent !== 'Yanwen') brands[i].textContent = 'Yanwen';
+    }
+
+    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null, false);
+    var nodes = [];
+    var node;
+    while ((node = walker.nextNode())) nodes.push(node);
+    for (var j = 0; j < nodes.length; j++) protectTextNode(nodes[j]);
+  }
+
+  function restoreTrackingLines(shipment) {
+    if (!shipment || shipment.getAttribute('data-vt-carrier') !== 'yanwen') return;
+
+    var buttons = shipment.querySelectorAll('button[tracking-id]');
+    for (var i = 0; i < buttons.length; i++) {
+      var trackingId = normalizeTrackingId(buttons[i].getAttribute('tracking-id'));
+      if (!trackingId) continue;
+      trackingIds[trackingId] = true;
+
+      var targetId = buttons[i].getAttribute('target-id');
+      var target = targetId ? document.getElementById(targetId) : null;
+      if (!target) continue;
+
+      var candidates = target.querySelectorAll('div, p, li, span');
+      for (var j = candidates.length - 1; j >= 0; j--) {
+        var line = candidates[j];
+        var text = line.textContent || '';
+        if (text.toUpperCase().indexOf(trackingId) === -1 || text.indexOf('·') === -1) continue;
+
+        var childHasHeader = false;
+        for (var k = 0; k < line.children.length; k++) {
+          var childText = line.children[k].textContent || '';
+          if (childText.toUpperCase().indexOf(trackingId) !== -1 && childText.indexOf('·') !== -1) {
+            childHasHeader = true;
+            break;
+          }
+        }
+        if (childHasHeader) continue;
+
+        line.setAttribute('data-vt-yanwen-tracking-line', 'true');
+        if (!line.querySelector('.vt-carrier-brand')) {
+          var separatorIndex = text.indexOf('·');
+          line.textContent = text.slice(0, separatorIndex + 1) + ' ';
+          line.appendChild(createBrandNode());
+        }
+      }
+    }
+  }
+
+  function restoreMarkedCarrierLines(shipment) {
+    if (!shipment || shipment.getAttribute('data-vt-carrier') !== 'yanwen') return;
+
+    var lines = shipment.querySelectorAll('[data-vt-yanwen-carrier-line="true"]');
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].querySelector('.vt-carrier-brand')) continue;
+
+      var text = lines[i].textContent || '';
+      var separatorIndex = Math.max(text.lastIndexOf(':'), text.lastIndexOf('：'));
+      if (separatorIndex === -1) continue;
+
+      lines[i].textContent = text.slice(0, separatorIndex + 1) + ' ';
+      lines[i].appendChild(createBrandNode());
+    }
+  }
+
+  function scanAll() {
+    scanPending = false;
+
+    var scopes = document.querySelectorAll(SCOPE_SELECTOR);
+    for (var i = 0; i < scopes.length; i++) protectScope(scopes[i]);
+
+    var shipments = document.querySelectorAll(
+      '.shipment-package-container[data-vt-carrier="yanwen"], ' +
+      '.shipment-package[data-vt-carrier="yanwen"]'
+    );
+    for (var j = 0; j < shipments.length; j++) {
+      registerShipment(shipments[j]);
+      restoreMarkedCarrierLines(shipments[j]);
+      restoreTrackingLines(shipments[j]);
+    }
+  }
+
+  function scheduleScan(delay) {
+    if (delay) {
+      window.setTimeout(scanAll, delay);
+      return;
+    }
+    if (scanPending) return;
+    scanPending = true;
+    window.setTimeout(scanAll, 0);
+  }
+
+  function scanAfterUiChange() {
+    var delays = [0, 100, 300, 700, 1500, 3000, 6000, 10000];
+    for (var i = 0; i < delays.length; i++) scheduleScan(delays[i]);
+  }
+
+  window.VTRefreshYanwen = scanAll;
+
+  var observer = new MutationObserver(function () {
+    scheduleScan(0);
+  });
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+
+  document.addEventListener('click', function (event) {
+    var target = event.target && event.target.closest
+      ? event.target.closest('button[role="tracking"], [role="tracking"]')
+      : null;
+    if (target) scanAfterUiChange();
+  }, true);
+
+  document.addEventListener('change', scanAfterUiChange, true);
+  scanAll();
+})();
+</script>
+
+{%- comment -%}-----------虚拟物流模块开始-----------{%- endcomment -%}
+{%- comment -%}
+  显示条件（必须同时满足）：
+  1. 订单存在且已付款
+     - financial_status 明确为 'paid'
+     - 排除 waiting / paying / pending / cancelled / refunded 等任何非 paid 状态
+     - 防御性检查：字段不能为空
+  2. 履约状态处于"未发货早期"
+     - 允许：blank / initialled / waiting（未进入实质发货流程）
+     - 排除：shipped / partially_shipped / delivered / cancelled / returned / refunded
+     - 防御性检查：字段若为空，视为未发货（但需配合 financial_status == 'paid'）
+  3. 订单未取消、未退款
+     - cancelled 状态在 financial_status 和 fulfillment_status 双重拦截
+{%- endcomment -%}
+
+{%- assign vt_financial = order.financial_status | default: '' | strip | downcase -%}
+{%- assign vt_fulfillment = order.fulfillment_status | default: '' | strip | downcase -%}
+
+{%- comment -%} 严格白名单：只有已付款 + 未发货早期才显示 {%- endcomment -%}
+{%- assign vt_is_paid = false -%}
+{%- if vt_financial == 'paid' -%}
+  {%- assign vt_is_paid = true -%}
+{%- endif -%}
+
+{%- assign vt_is_unshipped = false -%}
+{%- if vt_fulfillment == blank or vt_fulfillment == 'initialled' or vt_fulfillment == 'waiting' -%}
+  {%- assign vt_is_unshipped = true -%}
+{%- endif -%}
+
+{% if vt_is_paid and vt_is_unshipped %}
+
+<div class="page-container">
+  <div style="margin: 24px 0; padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #f0f0f0;">
+    <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">Order Progress</h4>
+    <div class="vt-timeline" id="vt-timeline"></div>
+  </div>
+</div>
+
+<style>
+  .vt-timeline {
+    position: relative;
+    padding-left: 24px;
+  }
+
+  .vt-timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: #e5e7eb;
+  }
+
+  .vt-item {
+    position: relative;
+    margin-bottom: 18px;
+  }
+
+  .vt-item:last-child {
+    margin-bottom: 0;
+  }
+
+  /* 当前版本只渲染“已完成”的节点，所以圆点固定为绿色 */
+  .vt-dot {
+    position: absolute;
+    left: -20px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #10b981;
+  }
+
+  .vt-text {
+    font-size: 14px;
+    color: #374151;
+    font-weight: 500;
+  }
+
+  .vt-desc {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  .vt-time {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .vt-time .tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    margin-right: 4px;
+    font-family: inherit;
+  }
+
+  .vt-time .tag.done {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .vt-footer {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+</style>
+
+<script>
+(function () {
+  /**
+   * 虚拟时间轴配置
+   *
+   * 时间字段优先级说明：
+   * 1. placed_at：最符合“下单/落单时间”语义，优先使用
+   * 2. created_at：若 placed_at 缺失，则回退到 created_at
+   * 3. order_info.*：兼容部分主题/对象结构差异
+   *
+   */
+  var VT = {
+    rawTimeCandidates: [
+      {{ order.placed_at | json }},
+      {{ order.created_at | json }},
+      {{ order.order_info.placed_at | json }},
+      {{ order.order_info.created_at | json }}
+    ],
+    orderId: {{ order.id | json }},
+    steps: [
+      {
+        label: 'Payment Successful',
+        desc: 'Your order has been successfully placed.',
+        min: 0,
+        max: 0
+      },
+      {
+        label: 'Order Confirmed',
+        desc: 'Your order has been confirmed and is being prepared by the warehouse.',
+        min: 710,
+        max: 730
+      },
+      {
+        label: 'Items Processing',
+        desc: 'Your items are being prepared and checked for size, color, and style.',
+        min: 1430,
+        max: 1450
+      },
+      {
+        label: 'Quality Inspection',
+        desc: 'Your items are undergoing final quality inspection before shipment.',
+        min: 4310,
+        max: 4330
+      },
+      {
+        label: 'Packaging',
+        desc: 'Your items have passed quality inspection and are being carefully packed.',
+        min: 5750,
+        max: 5770
+      },
+      {
+        label: 'Awaiting Carrier Pickup',
+        desc: 'Your package has been packed and is waiting for the carrier to pick it up.',
+        min: 8630,
+        max: 8650
+      },
+      {
+        label: 'Shipped',
+        desc: 'Your package has been handed over to the carrier. Tracking information will be updated soon.',
+        min: 14390,
+        max: 14410
+      }
+    ],
+    i18n: {
+      done: 'Completed',
+      fallbackTime: 'Just now',
+      fallbackText: 'Order processing will begin shortly.',
+      footer: '📦 Your order is being expedited.'
+    }
+  };
+
+  var container = document.getElementById('vt-timeline');
+  if (!container) return;
+
+  /**
+   * 解析订单时间字符串
+   * 仅接受可解析且年份 >= 2000 的值，避免空值/异常值退化为 1970
+   */
+  function parseOrderTime(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) return null;
+    if (d.getFullYear() < 2000) return null;
+
+    return d;
+  }
+
+  /**
+   * 从候选字段中按优先级选出第一个有效时间
+   */
+  function pickBaseTime(candidates) {
+    for (var i = 0; i < candidates.length; i++) {
+      var dt = parseOrderTime(candidates[i]);
+      if (dt) return dt;
+    }
+    return null;
+  }
+
+  /**
+   * 字符串哈希
+   * 用于基于 order.id 生成稳定种子，避免直接 parseInt 长 ID 带来的精度问题
+   */
+  function hashCode(str) {
+    str = String(str || '');
+
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+
+    return Math.abs(hash);
+  }
+
+  /**
+   * 基于种子生成固定伪随机数
+   * 同一订单、同一步骤每次刷新结果一致，不会跳动
+   */
+  function seededRandom(seed) {
+    var x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  }
+
+  /**
+   * 格式化为浏览器本地时间
+   * 输出格式：YYYY-MM-DD HH:mm:ss TZ
+   *
+   * 当前逻辑是“按访问者浏览器时区显示”：
+   * - 美国用户会看到本地美西/美东时间
+   * - 你在其他地区测试时，会看到你本地时区
+   */
+  function fmt(d) {
+    var parts = new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZoneName: 'short'
+    }).formatToParts(d);
+
+    var map = {};
+    for (var i = 0; i < parts.length; i++) {
+      map[parts[i].type] = parts[i].value;
+    }
+
+    return map.year + '-' + map.month + '-' + map.day + ' ' +
+      map.hour + ':' + map.minute + ':' + map.second + ' ' +
+      map.timeZoneName;
+  }
+
+  var payDate = pickBaseTime(VT.rawTimeCandidates);
+  var hasAbsoluteTime = !!payDate;
+  var now = Date.now();
+  var html = '';
+  var completedSteps = []; // 收集已完成的节点，用于后续倒序输出
+
+  /**
+   * 渲染逻辑：
+   * - 有真实基准时间：按步骤依次计算预计完成时间
+   *   只收集“已经完成”的节点，遇到第一个未完成节点立即停止
+   *   最后将收集到的节点倒序输出（最新的在上面，最早的在下面）
+   * - 无真实基准时间：保底只显示第一步，避免模块空白
+   */
+  for (var i = 0; i < VT.steps.length; i++) {
+    var step = VT.steps[i];
+    var seed = hashCode(VT.orderId) + i + 7;
+
+    // 分钟随机偏移（保持原有逻辑）
+    var addMin = step.min + Math.floor(seededRandom(seed) * (step.max - step.min + 1));
+    // 秒随机偏移：0~59 秒，使用不同种子避免与分钟随机耦合，让预计时间更自然
+    var addSec = Math.floor(seededRandom(seed + 999) * 60);
+
+    if (hasAbsoluteTime) {
+      // 加入秒偏移，让预计时间显示到秒且每次刷新固定不变
+      var estDate = new Date(payDate.getTime() + addMin * 60000 + addSec * 1000);
+
+      // 只收集已完成节点；后续步骤时间更晚，直接停止渲染
+      if (now < estDate.getTime()) break;
+
+      completedSteps.push({
+        label: step.label,
+        desc: step.desc,
+        timeStr: '<span class="tag done">' + VT.i18n.done + '</span> ' + fmt(estDate)
+      });
+    } else {
+      // 没有可用绝对时间时，只保底展示第一步
+      if (i > 0) break;
+
+      html += ''
+        + '<div class="vt-item">'
+        +   '<div class="vt-dot"></div>'
+        +   '<div class="vt-text">' + step.label + '</div>'
+        +   '<div class="vt-desc">' + step.desc + '</div>'
+        +   '<div class="vt-time"><span class="tag done">' + VT.i18n.done + '</span> ' + VT.i18n.fallbackTime + '</div>'
+        + '</div>';
+    }
+  }
+
+  // 将已完成的步骤倒序输出：刚刚完成的在上面，时间久的在底下
+  for (var j = completedSteps.length - 1; j >= 0; j--) {
+    var item = completedSteps[j];
+    html += ''
+      + '<div class="vt-item">'
+      +   '<div class="vt-dot"></div>'
+      +   '<div class="vt-text">' + item.label + '</div>'
+      +   '<div class="vt-desc">' + item.desc + '</div>'
+      +   '<div class="vt-time">' + item.timeStr + '</div>'
+      + '</div>';
+  }
+
+  /**
+   * 正常情况下至少会渲染一个节点；
+   * 若未渲染成功，则显示兜底提示，避免整块空白
+   */
+  if (!html) {
+    html = '<p style="color:#9ca3af;font-size:13px;">' + VT.i18n.fallbackText + '</p>';
+  }
+
+  html += '<p class="vt-footer">' + VT.i18n.footer + '</p>';
+  container.innerHTML = html;
+})();
+</script>
+
+{% elsif vt_fulfillment == 'shipped' or vt_fulfillment == 'partially_shipped' %}
+{%- comment -%}-----------真实物流查询模块-----------{%- endcomment -%}
+{%- comment -%}
+  显示条件：订单已进入发货状态（shipped / partially_shipped）
+  逻辑：
+  1. 不再通过 Liquid 字段获取运单号（店匠该字段在服务端为空）
+  2. 页面加载后通过 JS 探测 DOM 自动抓取运单号
+     - 策略 1：抓取店匠按钮的 tracking-id 属性（最可靠）
+     - 策略 2：抓取移动端 "Tracking number:" 文本节点
+     - 去掉策略 3：不再整页正则扫描兜底
+  3. 探测到单号后自动填入；探测失败则显示提示，由用户手动输入后点击查询
+  4. 查询路由：Yanwen（任意前缀）或 BST/GZX/LR/ST/WBD/XY 前缀 → TRACK718，其他 → 17TRACK
+{%- endcomment -%}
+
+<div class="page-container">
+  <div style="margin: 24px 0; padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #f0f0f0;">
+    <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">Track Your Order</h4>
+    <style type="text/css">
+      @import url('https://static.track718.net/static/externalcall.css');
+      .vt-track718-box { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+      .vt-track718-box input {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+      }
+      /* 橙黄底色长方形按钮，图标+文字 */
+      .vt-track-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 20px;
+        background: #f59e0b;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background .2s;
+      }
+      .vt-track-btn:hover { background: #d97706; }
+      .vt-track-btn svg { width: 16px; height: 16px; fill: currentColor; }
+      .vt-track-hint {
+        display: none;
+        color: #9ca3af;
+        font-size: 12px;
+        margin-top: 8px;
+        line-height: 1.4;
+      }
+      .vt-tracking-result {
+        width: 100%;
+        overflow: hidden;
+      }
+      .vt-tracking-result[hidden],
+      .vt-tracking-result:empty {
+        display: none !important;
+      }
+      .vt-tracking-result iframe {
+        display: block;
+        width: 100% !important;
+        border: 0;
+      }
+    </style>
+    <div class="vt-track718-box">
+      <input type="text" id="Track718Num" maxlength="50" value="" placeholder="Enter tracking number" />
+      <button class="vt-track-btn" type="button" onclick="doTrack()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>
+        <span>Search</span>
+      </button>
+    </div>
+    <p style="margin: 8px 0 12px; font-size: 18px; color: #6b7280; line-height: 1.5;">
+      If you do not find your order information, please contact: {% if vt_support_email != blank %}<a href="mailto:{{ vt_support_email | escape }}" style="color: #f59e0b; text-decoration: none;">{{ vt_support_email | escape }}</a>{% else %}our customer support team{% endif %}, we will reply you as soon as possible within 24 hours.
+    </p>
+    <!-- TRACK718 结果容器 -->
+    <div id="Track718Container" class="vt-tracking-result" hidden></div>
+    <!-- 17TRACK 结果容器 -->
+    <div id="YQContainer" class="vt-tracking-result" hidden></div>
+    <p class="vt-track-hint" id="vt-track-hint">
+      Tracking number not detected automatically. Please copy it from the shipment info above and paste here.
+    </p>
+  </div>
+</div>
+
+<!-- 同时引入两个查询平台脚本 -->
+<script type="text/javascript" src="https://static.track718.net/static/externalcall.js"></script>
+<script type="text/javascript" src="//www.17track.net/externalcall.js"></script>
+<script type="text/javascript">
+  /**
+   * 根据原始承运商标记和运单号前缀判断查询平台
+   * Yanwen（任意前缀）或 BST/GZX/LR/ST/WBD/XY → TRACK718
+   * 其他 → 17TRACK
+   */
+  var TRACK718_PREFIXES = ['BST', 'GZX', 'LR', 'ST', 'WBD', 'XY'];
+
+  function hasTrack718Prefix(num) {
+    var upper = String(num || '').trim().toUpperCase();
+    for (var i = 0; i < TRACK718_PREFIXES.length; i++) {
+      if (upper.indexOf(TRACK718_PREFIXES[i]) === 0) return true;
+    }
+    return false;
+  }
+
+  function detectCarrier(num) {
+    if (!num) return '17track';
+
+    if (typeof window.VTRefreshYanwen === 'function') {
+      window.VTRefreshYanwen();
+    }
+
+    var upper = num.trim().toUpperCase();
+    var yanwenTrackingIds = window.VTYanwenTrackingIds || {};
+
+    if (yanwenTrackingIds[upper]) return 'track718';
+    if (hasTrack718Prefix(upper)) return 'track718';
+    return '17track';
+  }
+
+  /**
+   * 外部追踪组件使用跨域 iframe，无法读取内容真实高度，因此按视口动态限制。
+   */
+  function getTrackingFrameHeight() {
+    var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
+    return Math.max(350, Math.min(560, Math.round(viewportHeight * 0.65)));
+  }
+
+  function activateTrackingContainer(platform) {
+    var track718Container = document.getElementById('Track718Container');
+    var track17Container = document.getElementById('YQContainer');
+    var active = platform === 'track718' ? track718Container : track17Container;
+    var inactive = platform === 'track718' ? track17Container : track718Container;
+
+    if (inactive) {
+      inactive.innerHTML = '';
+      inactive.style.height = '';
+      inactive.hidden = true;
+    }
+    if (active) active.hidden = false;
+    return active;
+  }
+
+  function resizeActiveTrackingFrame() {
+    var height = getTrackingFrameHeight();
+    var containers = [
+      document.getElementById('Track718Container'),
+      document.getElementById('YQContainer')
+    ];
+
+    for (var i = 0; i < containers.length; i++) {
+      var container = containers[i];
+      if (!container || container.hidden || !container.firstChild) continue;
+      container.style.height = height + 'px';
+
+      var iframe = container.querySelector('iframe');
+      if (iframe) iframe.style.height = '100%';
+    }
+  }
+
+  var resizeTrackingTimer = null;
+  window.addEventListener('resize', function () {
+    window.clearTimeout(resizeTrackingTimer);
+    resizeTrackingTimer = window.setTimeout(resizeActiveTrackingFrame, 150);
+  });
+
+  /**
+   * TRACK718 查询函数
+   */
+  function doTrack718(num) {
+    activateTrackingContainer('track718');
+    Track718.trackSingleM1({
+      containerId: 'Track718Container',
+      num: num,
+      carrierId: '0',
+      className: '',
+      height: getTrackingFrameHeight(),
+      lang: 'en',
+      source: ''
+    });
+    window.setTimeout(resizeActiveTrackingFrame, 0);
+  }
+
+  /**
+   * 17TRACK 查询函数
+   */
+  function doTrack17(num) {
+    activateTrackingContainer('17track');
+    YQV5.trackSingle({
+      YQ_ContainerId: 'YQContainer',
+      YQ_Height: getTrackingFrameHeight(),
+      YQ_Fc: '0',
+      YQ_Lang: 'en',
+      YQ_Num: num
+    });
+    window.setTimeout(resizeActiveTrackingFrame, 0);
+  }
+
+  /**
+   * 执行已完成承运商识别的查询
+   */
+  function performTrack(num) {
+    var carrier = detectCarrier(num);
+    if (carrier === 'track718') {
+      doTrack718(num);
+    } else {
+      doTrack17(num);
+    }
+  }
+
+  function hasMatchingTrackingButton(num) {
+    var expected = String(num || '').trim().toUpperCase();
+    var buttons = document.querySelectorAll('button[tracking-id]');
+    for (var i = 0; i < buttons.length; i++) {
+      var trackingId = String(buttons[i].getAttribute('tracking-id') || '').trim().toUpperCase();
+      if (trackingId === expected) return true;
+    }
+    return false;
+  }
+
+  /**
+   * 店匠可能先渲染运单按钮，再渲染承运商；短暂等待 Yanwen 标记建立。
+   */
+  function waitForCarrierAndTrack(num) {
+    var attempts = 0;
+    var maxAttempts = 8;
+    var upper = String(num || '').trim().toUpperCase();
+
+    function check() {
+      if (typeof window.VTRefreshYanwen === 'function') {
+        window.VTRefreshYanwen();
+      }
+
+      var yanwenTrackingIds = window.VTYanwenTrackingIds || {};
+      if (
+        yanwenTrackingIds[upper] ||
+        hasTrack718Prefix(upper) ||
+        !hasMatchingTrackingButton(upper) ||
+        attempts >= maxAttempts
+      ) {
+        performTrack(num);
+        return;
+      }
+
+      attempts++;
+      window.setTimeout(check, 250);
+    }
+
+    check();
+  }
+
+  /**
+   * 搜索按钮统一入口
+   */
+  function doTrack() {
+    var num = document.getElementById("Track718Num").value.trim();
+    if (num === "") {
+      alert("Enter your tracking number.");
+      return;
+    }
+    waitForCarrierAndTrack(num);
+  }
+
+  /**
+   * 自动探测单号逻辑
+   * 店匠部分版本不在 Liquid 中暴露 tracking_number，只在前端组件渲染后才出现。
+   * 因此页面加载后延迟探测 DOM，尝试从原生物流区域抓取。
+   */
+  (function autoDetectTracking() {
+    var input = document.getElementById('Track718Num');
+    if (!input) return;
+
+    var attempts = 0;
+    var maxAttempts = 6; // 最多探测 6 次
+    var interval = setInterval(function() {
+      attempts++;
+      var num = null;
+
+      // 策略 1：抓取店匠按钮的 tracking-id 属性（最可靠）
+      var btn = document.querySelector('button[tracking-id]');
+      if (btn) {
+        var tid = btn.getAttribute('tracking-id');
+        if (tid && tid.trim().length >= 8) {
+          num = tid.trim();
+        }
+      }
+
+      // 策略 2：抓取移动端 "Tracking number:" 文本节点
+      if (!num) {
+        var els = document.querySelectorAll('*');
+        for (var k = 0; k < els.length; k++) {
+          var txt = els[k].textContent || '';
+          var match = txt.match(/Tracking number:\s*([A-Z0-9]{8,})/i);
+          if (match) { num = match[1]; break; }
+        }
+      }
+
+      // 探测成功：先等待承运商标记，再自动路由到对应平台
+      if (num) {
+        clearInterval(interval);
+        input.value = num;
+        waitForCarrierAndTrack(num);
+        return;
+      }
+
+      // 探测超时：显示提示，让用户手动输入
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        var hint = document.getElementById('vt-track-hint');
+        if (hint) hint.style.display = 'block';
+      }
+    }, 1500); // 每 1.5 秒探测一次，给 spz-order-detail 留出渲染时间
+  })();
+</script>
+
+{% endif %}
+{%- comment -%}顾客自助改址入口：独立于上方虚拟物流显示条件，实际可修改性由服务端检查。{%- endcomment -%}
+<div class="page-container">
+{% comment %}Include only on the existing order-detail page. No shop API token is used.{% endcomment %}
+{% assign address_order_number = order.order_info.order_no | default: order.id %}
+<section class="maildesk-customer-address" style="margin:24px 0;padding:20px;background:#fff;border:1px solid #f0f0f0;border-radius:12px;">
+  <details>
+    <summary style="cursor:pointer;font-size:16px;font-weight:600;padding:8px 0;">Update shipping address</summary>
+    <p style="margin:8px 0 16px;color:#6b7280;font-size:14px;line-height:1.5;">You can update your shipping address within 48 hours of placing your order, before it ships.</p>
+    <iframe title="Update shipping address" loading="lazy"
+      src="https://chat.thinkpro.top/maildesk/customer-address/#store={{ shop.id }}"
+      data-store="{{ shop.id }}" data-order="{{ address_order_number | escape }}" data-email="{{ order.customer.email | escape }}"
+      style="display:block;width:100%;height:1000px;border:0;" referrerpolicy="no-referrer"></iframe>
+  </details>
+</section>
+<script>
+(function () {
+  var frame = document.currentScript.previousElementSibling.querySelector('iframe');
+  var origin = new URL(frame.src).origin;
+  window.addEventListener('message', function (event) {
+    if (event.origin !== origin || event.source !== frame.contentWindow || !event.data || event.data.type !== 'maildesk-address-ready') return;
+    frame.contentWindow.postMessage({type:'maildesk-address-order',store:frame.dataset.store,order:frame.dataset.order,email:frame.dataset.email}, origin);
+  });
+})();
+</script>
+
+</div>
+
+{%- comment -%}-----------虚拟物流模块结束-----------{%- endcomment -%}
