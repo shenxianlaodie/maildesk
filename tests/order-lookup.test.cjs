@@ -8,7 +8,7 @@ test('customer lookup does not wait for a cold full index and later uses the war
 });
 test('cold index uses bounded keyset pages and retries completely after a failed page',async()=>{
  let fail=true;const cursors=[];
- const index=createOrderLookup(async(sql,args)=>{assert.match(sql,/ORDER BY id LIMIT \$2/);cursors.push(args[0]);if(args[0]==='0')return[{...row},{...row,id:'2'}];if(fail)throw Error('timeout');return[{...row,id:'3'}];},{pageSize:2});
+ const index=createOrderLookup(async(sql,args)=>{assert.match(sql,/ORDER BY support_order_snapshots\.id LIMIT \$2/);cursors.push(args[0]);if(args[0]==='0')return[{...row},{...row,id:'2'}];if(fail)throw Error('timeout');return[{...row,id:'3'}];},{pageSize:2});
  await assert.rejects(index.warm(),/timeout/);fail=false;assert.deepEqual(await index.emails(['a@example.com']),['1','2','3']);assert.deepEqual(cursors,['0','2','0','2']);await index.close();
 });
 test('one shared index supports every email and both tracking formats without duplicate remote scans',async()=>{let calls=0,release;const gate=new Promise(r=>release=r);const index=createOrderLookup(async()=>{calls++;await gate;return[row];});const requests=[index.emails(['contact@example.com']),index.search('ORDER'),index.identifiers(['nested456'])];release();assert.deepEqual(await Promise.all(requests),[['1'],['1'],['1']]);assert.equal(calls,1);assert.deepEqual(await index.emails(['DELIVERY@example.com']),['1']);assert.deepEqual(await index.search('%'),[]);assert.equal(calls,1);await index.close();});
@@ -23,3 +23,4 @@ test('reverse email index covers all four fields and forced rebuild removes dele
  let rows=[{...row,checkout_email:' CHECKOUT@example.com '}],now=1000;const index=createOrderLookup(async()=>rows,{clock:()=>now,ttl:10,fullInterval:1000000,maxStale:10});await index.warm();assert.deepEqual(await index.emails([' a@example.com ','CONTACT@example.com','delivery@example.com','checkout@example.com']),['1']);
  rows=[{...row,customer_email:'b@example.com',contact_email:null,shipping_email:null,checkout_email:null}];now+=11;assert.deepEqual(await index.emails(['a@example.com','contact@example.com','delivery@example.com','checkout@example.com']),[]);assert.deepEqual(await index.emails(['b@example.com']),['1']);rows=[];await index.refreshAll();assert.deepEqual(await index.emails(['b@example.com']),[]);await index.close();
 });
+
