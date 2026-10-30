@@ -48,3 +48,8 @@ test('HTTP denies unauthorized messages, mixed read batches, settings and send b
  assert.equal((await call('/api/desk/conversations')).data.total,0);
  }finally{await app.close();}
 });
+test('manual link checks the selected order without requiring the unlinked customer lookup',async()=>{
+ const {s,a}=fixture(),{shopId}=require('../backend/external-orders.cjs');const domain='a.myshoplaza.com',sid=shopId(domain);s.addShop({id:sid,domain:'fallback.myshoplaza.com',name:'Fallback'});s.linkInboxShop('a',sid);save(s,{staffId:actor,mode:'selected',inboxIds:['a']});let emailQueries=0;
+ const database={lookup:{emails:async()=>{emailQueries++;throw Error('ORDER_DATABASE_UNAVAILABLE');},close:async()=>{}},read:async(sql,args)=>{if(sql.includes('WHERE id=$1'))return[{id:args[0],store_subdomain:args[0]==='1'?domain:'b.myshoplaza.com',order_id:'12345-TEST123',order_number:'TEST123',customer_email:'other@example.com'}];return[];},close:async()=>{}};
+ const app=require('../backend/pilot.cjs').createPilot({store:s,vault:{get:()=>({}),status:()=>({})},orderDatabase:database,port:19983,autoSync:false});await app.listen();try{const base='http://127.0.0.1:19983',token=(await(await fetch(base+'/api/bootstrap')).json()).token;const call=orderId=>fetch(base+'/api/order-links',{method:'POST',headers:{authorization:'Bearer '+token,origin:base,'content-type':'application/json','x-maildesk-staff':actor,'x-maildesk-role':'staff'},body:JSON.stringify({customerId:a.customerId,messageId:a.id,orderId})});assert.equal((await call('pg:1')).status,200);assert.equal(emailQueries,0);assert.equal(s.db.prepare('SELECT order_id FROM external_order_links WHERE customer_id=?').get(a.customerId).order_id,'pg:1');assert.equal((await call('pg:2')).status,403);}finally{await app.close();}
+});
