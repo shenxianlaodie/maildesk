@@ -6,7 +6,7 @@ const {mergeOrders}=require('./combined-orders.cjs');
 const {fetchOrderDetail}=require('./order-detail-refresh.cjs');
 let readShopToken;
 async function pgShopToken(domain){
- if(!readShopToken){if(!process.env.ORDER_DATABASE_URL)throw Error('ORDER_TOKEN_DATABASE_UNAVAILABLE');const database=require('./order-database.cjs').createOrderDatabase(process.env.ORDER_DATABASE_URL);readShopToken=require('./shop-token.cjs').createShopTokenReader(database);}
+ if(!readShopToken){if(!process.env.ORDER_DATABASE_URL)throw Error('ORDER_TOKEN_DATABASE_UNAVAILABLE');const database=require('./order-database.cjs').createOrderDatabase(process.env.ORDER_DATABASE_URL);readShopToken=require('./shop-token.cjs').createShopTokenReader(database,undefined,{fallback:domain=>require('./local-shop-token.cjs').readLocalShopToken(require('node:path').dirname(workerData.cache),domain)});}
  return readShopToken(domain);
 }
 const source=new DatabaseSync(workerData.source,{readOnly:true}),cache=new DatabaseSync(workerData.cache);

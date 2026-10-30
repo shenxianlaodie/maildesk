@@ -15,3 +15,12 @@ test('missing, disabled, duplicate, broken ciphertext and database errors never 
  await assert.rejects(createShopTokenReader({read:async()=>{throw Error('sensitive connection details');}},()=>keyHex)('shop'),/^Error: ORDER_TOKEN_DATABASE_UNAVAILABLE$/);
  await assert.rejects(createShopTokenReader({read:async()=>{throw Error('must not query');}},()=>keyHex)('evil.example'),/INVALID_DOMAIN/);
 });
+test('PG timeout uses a local token, but PG disabled or rejected credentials never fall back',async()=>{
+ let calls=0;const fallback=async domain=>{calls++;assert.equal(domain,'shop.myshoplaza.com');return 'local-token';};
+ const reader=createShopTokenReader({read:async()=>{throw Error('connect failed');}},()=>keyHex,{fallback,timeoutMs:20});
+ assert.equal(await reader('shop'),'local-token');assert.equal(calls,1);
+ const slow=createShopTokenReader({read:()=>new Promise(()=>{})},()=>keyHex,{fallback,timeoutMs:20});assert.equal(await slow('shop'),'local-token');
+ const disabled=createShopTokenReader({read:async()=>[{enabled:false,access_token:encrypt('pg-token')}]},()=>keyHex,{fallback});await assert.rejects(disabled('shop'),/DISABLED/);assert.equal(calls,2);
+ const invalid=createShopTokenReader({read:async()=>[{enabled:true,access_token:'bad'}]},()=>keyHex,{fallback});await assert.rejects(invalid('shop'),/FORMAT/);assert.equal(calls,2);
+});
+test('traffic during token cooldown does not postpone PG recovery checks',async()=>{let now=0,calls=0;const reader=createShopTokenReader({read:async()=>{calls++;if(calls===1)throw Error('offline');return[{enabled:false}];}},()=>keyHex,{fallback:async()=> 'local',clock:()=>now});assert.equal(await reader('shop'),'local');now=10000;assert.equal(await reader('shop'),'local');now=20000;await assert.rejects(reader('shop'),/DISABLED/);assert.equal(calls,2);});

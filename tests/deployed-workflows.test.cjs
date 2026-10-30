@@ -68,7 +68,7 @@ test('large mail retries, imports once, preserves bytes and honors disabled auto
  assert.equal(Buffer.from(store.db.prepare('SELECT content FROM file_contents').get().content).toString(),'proof');await queue.close();
 });
 test('oversized large mail is rejected before download; changed mailbox identity also fails',async()=>{
- let downloaded=false;const client={on(){},async connect(){},mailbox:{uidValidity:1n},async getMailboxLock(){return{release(){}};},async fetchOne(){return{uid:1,size:21*1024*1024,internalDate:new Date('2026-10-23T00:00:00Z')};},async download(){downloaded=true;},close(){}};
+ let downloaded=false;const client={on(){},async connect(){},mailbox:{uidValidity:1n},async getMailboxLock(){return{release(){}};},async fetchOne(){return{uid:1,size:51*1024*1024,internalDate:new Date('2026-10-23T00:00:00Z')};},async download(){downloaded=true;},close(){}};
  const config={host:'imap.example.com',password:'test'},inbox={id:'i',address:'support@example.com'},id=JSON.stringify(['imap','INBOX','1','1']);
  await assert.rejects(fetchLargeMessage(config,inbox,id,{createClient:()=>client}),/IMAP_LARGE_SIZE_REVIEW/);assert.equal(downloaded,false);
  client.mailbox.uidValidity=2n;await assert.rejects(fetchLargeMessage(config,inbox,id,{createClient:()=>client}),/IMAP_LARGE_UID_CHANGED/);
