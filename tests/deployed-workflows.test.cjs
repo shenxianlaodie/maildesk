@@ -15,16 +15,16 @@ function fixture(t){
  const message=(uid,extra={})=>({inboxId:'i',providerId:JSON.stringify(['imap','INBOX','1',String(uid)]),direction:'inbound',customerEmail:'customer'+uid+'@example.com',fromAddress:'customer'+uid+'@example.com',sentAt:'2026-10-23T00:00:00Z',subject:'Help',bodyText:'Hello',attachments:[],...extra});
  return {store,accounts,message};
 }
-test('personal inbox counts isolate agents while pending includes read and assigned conversations',t=>{
+test('personal inbox counts isolate agents while pending includes unread regardless of assignment',t=>{
  const {store,message}=fixture(t);const m=[1,2,3,4].map(id=>store.upsertMessage(message(id)));
  store.db.prepare('UPDATE customer_work SET assignee_id=? WHERE customer_id=?').run('a',m[0].customerId);
  store.db.prepare('UPDATE customer_work SET assignee_id=? WHERE customer_id=?').run('b',m[1].customerId);
  store.db.prepare('INSERT INTO message_reads VALUES(?,?)').run(m[3].id,'2026-10-23T01:00:00Z');
  const list=(query,actor)=>listConversations(store,new URLSearchParams(query),null,null,actor);
- assert.deepEqual(list('', 'a').counts,{all:4,unreplied:1,pending:4});
+ assert.deepEqual(list('', 'a').counts,{all:4,unreplied:1,pending:3});
  assert.equal(list('filter=unreplied','a').rows[0].id,m[0].customerId);
  assert.equal(list('filter=unreplied','b').rows[0].id,m[1].customerId);
- assert.deepEqual(new Set(list('filter=pending','a').rows.map(r=>r.id)),new Set(m.map(r=>r.customerId)));
+ assert.deepEqual(new Set(list('filter=pending','a').rows.map(r=>r.id)),new Set(m.slice(0,3).map(r=>r.customerId)));
  assert.deepEqual(list('q=customer2@example.com','a').counts,{all:1,unreplied:0,pending:1});
  store.upsertMessage(message(5,{customerEmail:'customer1@example.com',direction:'outbound',sentAt:'2026-10-23T02:00:00Z'}));
  assert.equal(list('filter=unreplied','a').total,0);
