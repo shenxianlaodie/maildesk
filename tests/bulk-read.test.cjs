@@ -18,3 +18,12 @@ test('a newer incoming message is not hidden by an older bulk response',async()=
 test('background refresh keeps usable rows and selections when the network fails',async()=>{const f=fixture();Object.assign(f.state,{listSeq:0,q:'',filters:{},page:0,pageSize:40,filter:'pending'});const body={innerHTML:'existing rows',setAttribute(){throw Error('must not show busy overlay');},removeAttribute(){}};Object.assign(f.context,{URLSearchParams,$:()=>body,api:async()=>{throw Error('offline');}});const start=source.indexOf('async function loadList(');vm.runInContext(source.slice(start,source.indexOf('\nfunction startBulkRead(',start)),f.context);f.context.selectBulkRead('a');await f.context.loadList({background:true});assert.equal(body.innerHTML,'existing rows');assert.deepEqual(f.selected(),['a']);});
 
 test('batch read preserves pending rows, status and count without refreshing',async()=>{const f=fixture();f.state.filter='pending';f.state.list.total=5;f.state.list.counts={pending:5};f.state.list.rows.forEach(r=>{r.unread=1;r.status='pending';});f.context.loadList=()=>{throw Error('must not reload pending list');};f.context.selectAllBulkRead();await f.context.confirmBulkRead();assert.equal(f.state.list.rows.length,5);assert.equal(f.state.list.total,5);assert.equal(f.state.list.counts.pending,5);assert.ok(f.state.list.rows.every(r=>r.status==='pending'&&r.unread===0));});
+
+test('list response started before bulk completion cannot restore stale unread state',async()=>{
+ const f=fixture(),waiters=[];Object.assign(f.state,{listSeq:0,q:'',filters:{},page:0,pageSize:40,filter:'all'});f.state.list.rows[0].unread=1;
+ Object.assign(f.context,{URLSearchParams,$:()=>({setAttribute(){},removeAttribute(){}}),api:()=>new Promise(resolve=>waiters.push(resolve))});
+ const start=source.indexOf('async function loadList(');vm.runInContext(source.slice(start,source.indexOf('\nfunction startBulkRead(',start)),f.context);
+ f.context.selectBulkRead('a');const bulk=f.context.confirmBulkRead(),list=f.context.loadList();waiters[0]({saved:true});await bulk;
+ waiters[1]({rows:[{id:'a',unread:1}]});await new Promise(r=>setImmediate(r));assert.equal(f.state.list.rows[0].unread,0);assert.equal(waiters.length,3);
+ waiters[2]({rows:[{id:'a',unread:0}]});await list;assert.equal(f.state.list.rows[0].unread,0);
+});
