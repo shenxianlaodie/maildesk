@@ -363,7 +363,7 @@ function labelLibrary(){
 }
 function labelManager(onCreated){const colors=['#e5e5e5','#f8b6a6','#f8d2a0','#fff575','#d7efaf','#c5e4f9','#decdef','#f4d0e5','#bfbfbf','#e97962','#efb366','#f6e35b','#b8dd7b','#91c9ed','#bc9bda','#e399c4','#858585','#cf202a','#dc8e29','#d3c244','#8cbe44','#60a7d9','#9971c1','#c2649d','#151515','#a50000','#aa5800','#a4932d','#538c24','#3579b1','#77469d','#9c2d74'];formModal('创建标签',`<label>标签名称<input name="name" maxlength="80" required placeholder="标签名称" autocomplete="off"></label><fieldset class="label-palette"><legend>标签颜色</legend><div class="label-swatches">${colors.map((color,i)=>`<label class="label-swatch" title="${color}"><input type="radio" name="color" value="${color}" aria-label="颜色 ${color}" ${i===13?'checked':''}><span ${labelStyle(color)}>${icon('check')}</span></label>`).join('')}</div></fieldset>`,async f=>{const result=await api('labels',{name:f.get('name'),color:f.get('color'),tone:'light'});await refreshMeta();renderFilters();if(typeof onCreated==='function'){$('#dialog').classList.remove('label-create-dialog');onCreated(result.id);return false;}});const dialog=$('#dialog');dialog.classList.add('label-create-dialog');dialog.addEventListener('close',()=>dialog.classList.remove('label-create-dialog'),{once:true});if(typeof onCreated==='function')$('#cancel-form').onclick=()=>{dialog.classList.remove('label-create-dialog');onCreated();};}
 
-async function refreshMeta(){state.meta=await api('desk/meta');}
+async function refreshMeta({deferShops=false}={}){state.meta=await api('desk/meta'+(deferShops?'?shops=defer':''));}
 const templateVariables=[['name','顾客姓名'],['email','顾客邮箱'],['order','订单号'],['tracking_number','物流单号'],['carrier','承运商'],['tracking_url','17TRACK 查询链接'],['tracking_info','物流详情（Copy Details）'],['shop','店铺名称']];
 function templateTrackingDetails(selectedOrder){
  const numbers=[...new Set((selectedOrder?.shipments||[]).map(s=>String(s.tracking_number||'').toUpperCase()).filter(Boolean))];
@@ -467,7 +467,7 @@ function linkOrder(){
  input.oninput=schedule;mode.onchange=()=>{$('#order-search-label').textContent=mode.value==='tracking'?'搜索物流单号':'搜索订单号或顾客邮箱';input.placeholder=mode.value==='tracking'?'输入物流单号…':'输入订单号或顾客邮箱…';schedule();};
 }
 window.addEventListener('beforeunload',e=>{if(state.dirty||sendingReplies.size||composeHeld.length||composeDraft.pending||(composeDraft.result?.status!=='accepted'&&(composeDraft.to||composeDraft.subject||composeDraft.text||composeDraft.files.length))){e.preventDefault();e.returnValue='';}});
-async function init(){try{const b=await fetch(appBase+'/api/bootstrap').then(r=>r.json());state.token=b.token;const [,initialList]=await Promise.all([refreshMeta(),api('desk/conversations?filter=all')]);state.list=initialList;skeleton();setMobile('list');renderList();}catch(e){$('#app').innerHTML=`<div class="no-data"><h2>工作台暂时无法打开</h2><p>${esc(errorText(e))}</p><button id="retry-init" class="soft">重新连接</button></div>`;$('#retry-init').onclick=init;}}
+async function init(){try{const b=await fetch(appBase+'/api/bootstrap').then(r=>r.json());state.token=b.token;const [,initialList]=await Promise.all([refreshMeta({deferShops:true}),api('desk/conversations?filter=all')]);state.list=initialList;skeleton();setMobile('list');renderList();}catch(e){$('#app').innerHTML=`<div class="no-data"><h2>工作台暂时无法打开</h2><p>${esc(errorText(e))}</p><button id="retry-init" class="soft">重新连接</button></div>`;$('#retry-init').onclick=init;}}
 const replySignatures=new Map();
 function signatureRangeAfterEdit(previous,next,range){
  if(!range)return null;
@@ -543,3 +543,4 @@ async function previewAttachment(button){
 function renderCustomerLabels(){const target=$('#customer-top-labels');if(!target||!state.detail)return;target.innerHTML=state.detail.labels.map(t=>`<span class="tag ${esc(t.color)}" ${labelStyle(t.color)}>${esc(t.name)}</span>`).join('');target.hidden=!state.detail.labels.length;}
 
 function trackingCaptureView(order,number){const c=(order.trackingCaptures||[]).find(c=>c.number===number.toUpperCase());if(!c)return'';return`<div class="tracking-capture-result"><strong>AI 读取：${esc({delivered:'已签收',undelivered:'未签收',unknown:'状态未知'}[c.status]||'状态未知')}</strong><p>${esc(c.evidence)}</p><small>读取于 ${esc(fullTime(c.captured_at))} · 页面识别结果，非实时接口</small></div>`;}
+
