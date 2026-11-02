@@ -45,3 +45,7 @@ test('an existing draft saves before marking; a new edit waits for the updated r
 test('mark request alone does not hold the draft queue used for navigation',async()=>{
  const f=fixture();useRealDraftSave(f);const mark=f.click();await tick();let ready=false;f.context.saveDraft().then(()=>ready=true);await tick();assert.equal(ready,true);f.waiters[0].resolve({revision:2,status:'done'});await mark;
 });
+
+test('mark done removes pending row and decrements count; reopening restores pending count',async()=>{const f=fixture();f.state.filter='pending';f.state.list.counts={pending:1};f.state.list.total=1;const p=f.click();await tick();f.waiters[0].resolve({revision:2,status:'done'});await p;assert.equal(f.state.list.rows.length,0);assert.equal(f.state.list.counts.pending,0);assert.equal(f.state.list.total,0);const g=fixture();g.d.work.status='done';g.state.list.rows[0].status='done';g.state.list.counts={pending:0};const q=g.click();await tick();g.waiters[0].resolve({revision:2,status:'pending'});await q;assert.equal(g.state.list.counts.pending,1);});
+
+test('mark done refreshes counts quietly after navigating to a page without that customer',async()=>{const f=fixture();const p=f.click();await tick();f.state.list={rows:[{id:'b',status:'pending'}],counts:{pending:41}};f.waiters[0].resolve({revision:2,status:'done'});await p;assert.equal(f.lists,1);assert.equal(f.state.list.rows[0].id,'b');});

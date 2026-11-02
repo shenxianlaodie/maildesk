@@ -9,13 +9,16 @@ CREATE TABLE IF NOT EXISTS desk_tracking(order_id TEXT NOT NULL REFERENCES order
 CREATE TABLE IF NOT EXISTS desk_translations(message_id TEXT PRIMARY KEY REFERENCES messages(id),text TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_desk_outgoing_customer ON outgoing(customer_id);
 CREATE INDEX IF NOT EXISTS idx_desk_messages_date ON messages(sent_at);
+CREATE INDEX IF NOT EXISTS idx_list_messages_customer_direction_sent ON messages(customer_id,direction,sent_at,id);
+CREATE INDEX IF NOT EXISTS idx_list_outgoing_parent_status ON outgoing(parent_id,status);
+CREATE INDEX IF NOT EXISTS idx_list_outgoing_customer_created ON outgoing(customer_id,created_at);
 `);}
 function listConversations(store,params,remoteMatches=null,statusMatches=null,currentActor=null,scope=null){
  const db=store.db,where=[],args=[];const query=sql=>db.prepare((scope?.cte||'')+sql);if(scope)where.push('(EXISTS(SELECT 1 FROM messages m WHERE m.customer_id=c.id) OR EXISTS(SELECT 1 FROM outgoing o WHERE o.customer_id=c.id))');const q=String(params.get('q')||'').trim().slice(0,200);const filter=params.get('filter')||'all';
  if(!['all','unreplied','pending','done','unread','read'].includes(filter))throw Error('INVALID_FILTER');
  if(q){const needle='%'+q.replace(/[\\%_]/g,'\\$&')+'%';where.push(`(c.email LIKE ? ESCAPE '\\' OR c.display_name LIKE ? ESCAPE '\\' OR EXISTS(SELECT 1 FROM messages m WHERE m.customer_id=c.id AND (m.subject LIKE ? ESCAPE '\\' OR m.body_text LIKE ? ESCAPE '\\')) OR EXISTS(SELECT 1 FROM outgoing o WHERE o.customer_id=c.id AND (o.subject LIKE ? ESCAPE '\\' OR o.body LIKE ? ESCAPE '\\')) ${remoteMatches===null?`OR EXISTS(SELECT 1 FROM orders o LEFT JOIN shipments s ON s.order_id=o.id WHERE (o.customer_id=c.id OR o.id IN(SELECT order_id FROM order_links WHERE customer_id=c.id)) AND (o.order_number LIKE ? ESCAPE '\\' OR s.tracking_number LIKE ? ESCAPE '\\'))`:'OR c.id IN(SELECT value FROM json_each(?))'})`);args.push(...Array(remoteMatches===null?8:6).fill(needle));if(remoteMatches!==null)args.push(JSON.stringify(remoteMatches));}
  const unanswered=`EXISTS(SELECT 1 FROM messages m WHERE m.customer_id=c.id AND m.direction='inbound' AND NOT EXISTS(SELECT 1 FROM outgoing o WHERE o.parent_id=m.id AND o.status IN('accepted','demo')) AND NOT EXISTS(SELECT 1 FROM messages r WHERE r.customer_id=c.id AND r.direction='outbound' AND r.sent_at>=m.sent_at))`;
- const mine='w.assignee_id=? AND '+unanswered;const unassignedUnread="w.assignee_id IS NULL AND EXISTS(SELECT 1 FROM messages m WHERE m.customer_id=c.id AND m.direction='inbound' AND NOT EXISTS(SELECT 1 FROM message_reads r WHERE r.message_id=m.id))";
+ const mine='w.assignee_id=? AND '+unanswered;const pendingWork="w.status='pending'";
  if(filter==='done'){where.push('w.status=?');args.push(filter);}
  if(filter==='unread')where.push("EXISTS(SELECT 1 FROM messages m WHERE m.customer_id=c.id AND m.direction='inbound' AND NOT EXISTS(SELECT 1 FROM message_reads r WHERE r.message_id=m.id))");
  if(filter==='read')where.push("NOT EXISTS(SELECT 1 FROM messages m WHERE m.customer_id=c.id AND m.direction='inbound' AND NOT EXISTS(SELECT 1 FROM message_reads r WHERE r.message_id=m.id))");
@@ -25,8 +28,8 @@ function listConversations(store,params,remoteMatches=null,statusMatches=null,cu
  const orderStatus=params.get('orderStatus');if(orderStatus){const conditions={shipped:"o.fulfillment_status IN ('shipped','partially_shipped','fulfilled','partially_fulfilled')",waiting:"o.financial_status='paid' AND o.fulfillment_status IN ('waiting','initialled','unfulfilled')",unpaid:"o.financial_status IN ('waiting','pending','unpaid')"};if(!Object.hasOwn(conditions,orderStatus))throw Error('INVALID_ORDER_STATUS');if(statusMatches!==null){where.push('c.id IN(SELECT value FROM json_each(?))');args.push(JSON.stringify(statusMatches));}else where.push(`EXISTS(SELECT 1 FROM orders o WHERE (o.customer_id=c.id OR o.id IN(SELECT order_id FROM order_links WHERE customer_id=c.id)) AND ${conditions[orderStatus]})`);}
  const base='FROM customers c JOIN customer_work w ON w.customer_id=c.id';
  const count=(extra='',values=[])=>query('SELECT count(*) n '+base+((where.length||extra)?' WHERE '+[...where,...(extra?[extra]:[])].join(' AND '):'')).get(...args,...values).n;
- const counts={all:count(),unreplied:count(mine,[currentActor]),pending:count(unassignedUnread)};
- if(filter==='unreplied'){where.push(mine);args.push(currentActor);}if(filter==='pending')where.push(unassignedUnread);
+ const counts={all:count(),unreplied:count(mine,[currentActor]),pending:count(pendingWork)};
+ if(filter==='unreplied'){where.push(mine);args.push(currentActor);}if(filter==='pending')where.push(pendingWork);
  const clause=where.length?' WHERE '+where.join(' AND '):'';
  const sorting={time_desc:'last_at DESC,c.email',time_asc:'last_at ASC NULLS LAST,c.email',name_asc:"COALESCE(NULLIF(c.display_name,''),c.email) COLLATE NOCASE ASC,c.email",name_desc:"COALESCE(NULLIF(c.display_name,''),c.email) COLLATE NOCASE DESC,c.email"};const sort=params.get('sort')||'time_asc';if(!Object.hasOwn(sorting,sort))throw Error('INVALID_SORT');
  const requestedLimit=Number(params.get('limit')||40),limit=[20,40,80,100].includes(requestedLimit)?requestedLimit:40;const total=query('SELECT count(*) n '+base+clause).get(...args).n;const requestedPage=Number(params.get('page')||0),page=Math.max(0,Math.min(Math.max(0,Math.ceil(total/limit)-1),Number.isSafeInteger(requestedPage)?requestedPage:0));
