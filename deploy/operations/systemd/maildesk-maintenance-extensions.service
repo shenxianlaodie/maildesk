@@ -1,0 +1,9 @@
+[Unit]
+Description=Maildesk scoped maintenance extensions
+After=docker.service
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/sbin/maildesk-maintenance.py extensions --apply
+Nice=15
+IOSchedulingClass=idle
+TimeoutStartSec=15min

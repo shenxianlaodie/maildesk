@@ -1,0 +1,24 @@
+/var/log/nginx/maildesk-performance.jsonl {
+ daily
+ rotate 14
+ maxage 14
+ maxsize 10M
+ missingok
+ notifempty
+ compress
+ create 0640 www-data adm
+ sharedscripts
+ postrotate
+  invoke-rc.d nginx rotate >/dev/null 2>&1
+ endscript
+}
+/var/log/maildesk-performance/*.jsonl /var/log/maildesk-performance/*.jsonl.overflow {
+ daily
+ rotate 14
+ maxage 14
+ maxsize 10M
+ missingok
+ notifempty
+ compress
+ create 0640 root adm
+}

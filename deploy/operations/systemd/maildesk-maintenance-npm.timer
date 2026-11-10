@@ -1,0 +1,7 @@
+[Unit]
+Description=Schedule maildesk npm maintenance
+[Timer]
+OnCalendar=Mon *-*-* 03:10:00
+Persistent=true
+[Install]
+WantedBy=timers.target
