@@ -11,6 +11,7 @@ CREATE INDEX IF NOT EXISTS idx_desk_outgoing_customer ON outgoing(customer_id);
 CREATE INDEX IF NOT EXISTS idx_desk_messages_date ON messages(sent_at);
 CREATE INDEX IF NOT EXISTS idx_sync_runs_source_started ON sync_runs(provider,source_id,started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_list_messages_customer_direction_sent ON messages(customer_id,direction,sent_at,id);
+CREATE INDEX IF NOT EXISTS idx_list_messages_customer_inbox_direction_sent ON messages(customer_id,inbox_id,direction,sent_at,id);
 CREATE INDEX IF NOT EXISTS idx_list_outgoing_parent_status ON outgoing(parent_id,status);
 CREATE INDEX IF NOT EXISTS idx_list_outgoing_customer_created ON outgoing(customer_id,created_at);
 `);}
@@ -33,7 +34,7 @@ function listConversations(store,params,remoteMatches=null,statusMatches=null,cu
  if(filter==='unreplied'){where.push(mine);args.push(currentActor);}if(filter==='pending')where.push(unreadPending);
  const clause=where.length?' WHERE '+where.join(' AND '):'';
  const sorting={time_desc:'last_at DESC,c.email',time_asc:'last_at ASC NULLS LAST,c.email',name_asc:"COALESCE(NULLIF(c.display_name,''),c.email) COLLATE NOCASE ASC,c.email",name_desc:"COALESCE(NULLIF(c.display_name,''),c.email) COLLATE NOCASE DESC,c.email"};const sort=params.get('sort')||'time_asc';if(!Object.hasOwn(sorting,sort))throw Error('INVALID_SORT');
- const requestedLimit=Number(params.get('limit')||40),limit=[20,40,80,100].includes(requestedLimit)?requestedLimit:40;const total=query('SELECT count(*) n '+base+clause).get(...args).n;const requestedPage=Number(params.get('page')||0),page=Math.max(0,Math.min(Math.max(0,Math.ceil(total/limit)-1),Number.isSafeInteger(requestedPage)?requestedPage:0));
+ const requestedLimit=Number(params.get('limit')||40),limit=[20,40,80,100].includes(requestedLimit)?requestedLimit:40;const total=filter==='pending'?counts.pending:filter==='unreplied'?counts.unreplied:counts.all;const requestedPage=Number(params.get('page')||0),page=Math.max(0,Math.min(Math.max(0,Math.ceil(total/limit)-1),Number.isSafeInteger(requestedPage)?requestedPage:0));
  const rows=query(`SELECT c.*,w.status,w.assignee_id,w.revision,p.country,p.vip,
  COALESCE((SELECT subject FROM messages WHERE customer_id=c.id ORDER BY sent_at DESC LIMIT 1),(SELECT subject FROM outgoing WHERE customer_id=c.id ORDER BY created_at DESC LIMIT 1)) subject,
  COALESCE((SELECT substr(body_text,1,240) FROM messages WHERE customer_id=c.id ORDER BY sent_at DESC LIMIT 1),(SELECT substr(body,1,240) FROM outgoing WHERE customer_id=c.id ORDER BY created_at DESC LIMIT 1)) preview,
