@@ -2,12 +2,12 @@
 const {ImapFlow}=require('imapflow');
 const {simpleParser}=require('mailparser');
 const {imapOptions,messageFromParsed}=require('./imap.cjs');
-const {mailError,mailLog}=require('./mail-sync-log.cjs');
+const {mailError,mailLog,startDownload}=require('./mail-sync-log.cjs');
 const {saveReceived}=require('./files.cjs');
 const START='2026-10-22T04:00:00.000Z',LIMIT=50*1024*1024;
 function reference(value){try{const r=JSON.parse(value);if(r.length===4&&r[0]==='imap'&&typeof r[1]==='string'&&r[1]&&/^\d+$/.test(r[2])&&/^[1-9]\d*$/.test(r[3]))return{folder:r[1],validity:r[2],uid:r[3]};}catch{}throw Error('IMAP_LARGE_INVALID_REFERENCE');}
-async function fetchLargeMessage(config,inbox,providerId,{createClient=o=>new ImapFlow(o),parse=simpleParser,signal,timeout,allowBeforeStart=false,onRaw=async()=>{},reserveBytes=async()=>{}}={}){
- const ref=reference(providerId),client=createClient(imapOptions(config,inbox.address));client.on('error',()=>{});let lock,timer,rejectStop,stage='connect';
+async function fetchLargeMessage(config,inbox,providerId,{createClient=o=>new ImapFlow(o),parse=simpleParser,signal,timeout,allowBeforeStart=false,onRaw=async()=>{},onDownload=()=>{},reserveBytes=async()=>{}}={}){
+ const ref=reference(providerId),client=createClient(imapOptions(config,inbox.address));client.on('error',()=>{});let lock,timer,rejectStop,stage='connect',finishDownload=null;
  const stopped=new Promise((_,reject)=>{rejectStop=reject;});
  const stop=()=>{rejectStop(Error(signal?.aborted?'IMAP_LARGE_INTERRUPTED':'IMAP_LARGE_TIMEOUT'));client.close();};
  timer=setTimeout(stop,timeout??120000);timer.unref?.();signal?.addEventListener('abort',stop,{once:true});
@@ -30,7 +30,7 @@ async function fetchLargeMessage(config,inbox,providerId,{createClient=o=>new Im
   // Slow mailbox servers may deliver only a few KB/s. Keep a finite size-based budget.
   if(timeout===undefined){clearTimeout(timer);timer=setTimeout(stop,Math.min(120*60000,120000+Math.ceil(row.size/8192)*1000));timer.unref?.();}
   // One bounded MIME buffer avoids retaining all chunks plus a second concatenated copy.
-  stage='download';const source=Buffer.alloc(row.size);let bytes=0;
+  stage='download';finishDownload=startDownload(onDownload,{inboxId:inbox.id,providerId,mode:'recovery'});const source=Buffer.alloc(row.size);let bytes=0;
   while(bytes<row.size){
    if(signal?.aborted)throw Error('IMAP_LARGE_INTERRUPTED');
    const length=Math.min(256*1024,row.size-bytes);
@@ -50,13 +50,13 @@ async function fetchLargeMessage(config,inbox,providerId,{createClient=o=>new Im
   if(bytes!==row.size)throw Error('IMAP_LARGE_INCOMPLETE');
   const tail=await client.fetchOne(ref.uid,{source:{start:bytes,maxLength:1}},{uid:true});
   if(!tail||!Buffer.isBuffer(tail.source)||tail.source.length){console.warn('LARGE_MAIL_TAIL_MISMATCH',JSON.stringify({expected:row.size,received:tail?.source?.length??null}));throw Error('IMAP_LARGE_INCOMPLETE');}
-  stage='archive';await onRaw(source);stage='parse';
+  finishDownload('success',bytes);stage='archive';await onRaw(source);stage='parse';
   const mail=await parse(source,{skipHtmlToText:true,skipTextToHtml:true,skipImageLinks:true});
   if(signal?.aborted)throw Error('IMAP_LARGE_INTERRUPTED');
   return messageFromParsed(mail,row,inbox,ref.folder,ref.validity);
  };
  try{return await Promise.race([operation(),stopped]);}
- catch(e){const detail=mailError(e,stage);throw Object.assign(Error(detail.code),{stage});}
+ catch(e){const detail=mailError(e,stage);finishDownload?.('failed',0,detail.code);throw Object.assign(Error(detail.code),{stage});}
  finally{clearTimeout(timer);signal?.removeEventListener('abort',stop);lock?.release();client.close();}
 }
 function createLargeMailQueue(store,accounts,{enabled=()=>true,onImport=()=>{},fetchMessage=fetchLargeMessage,clock=Date.now,interval=15000}={}){
@@ -80,7 +80,7 @@ function createLargeMailQueue(store,accounts,{enabled=()=>true,onImport=()=>{},f
   if(imported()){done();return true;}
   db.prepare("UPDATE large_mail_jobs SET status='running',attempts=attempts+1,updated_at=? WHERE inbox_id=? AND provider_id=?").run(clock(),job.inbox_id,job.provider_id);
   try{
-   const inbox=accounts.source('zoho',job.inbox_id),message=await fetchMessage(accounts.config('zoho',job.inbox_id),inbox,job.provider_id,{signal:entry.controller.signal,allowBeforeStart:!!db.prepare("SELECT 1 FROM imap_skips WHERE inbox_id=? AND provider_id=? AND reason IN ('MESSAGE_REQUIRES_REVIEW','MESSAGE_PARSE_REVIEW')").get(job.inbox_id,job.provider_id),onRaw:source=>log.raw(job.inbox_id,job.provider_id,source),reserveBytes:bytes=>reserve(entry,bytes)});
+   const inbox=accounts.source('zoho',job.inbox_id),message=await fetchMessage(accounts.config('zoho',job.inbox_id),inbox,job.provider_id,{signal:entry.controller.signal,allowBeforeStart:!!db.prepare("SELECT 1 FROM imap_skips WHERE inbox_id=? AND provider_id=? AND reason IN ('MESSAGE_REQUIRES_REVIEW','MESSAGE_PARSE_REVIEW')").get(job.inbox_id,job.provider_id),onDownload:sample=>log.download(sample),onRaw:source=>log.raw(job.inbox_id,job.provider_id,source),reserveBytes:bytes=>reserve(entry,bytes)});
    if(closed)throw Error('IMAP_LARGE_INTERRUPTED');
    if(message){if(message.inboxId!==job.inbox_id||message.providerId!==job.provider_id)throw Error('IMAP_LARGE_ID_MISMATCH');
     if(!imported()){const saved=store.upsertMessage(message);saveReceived(store,saved.id,message.attachments);db.prepare('INSERT OR IGNORE INTO mime_imports VALUES(?)').run(saved.id);try{await onImport(saved,message);}catch{log.event({inboxId:job.inbox_id,providerId:job.provider_id,stage:'post_import',code:'IMAP_POST_IMPORT_FAILED'});}}
