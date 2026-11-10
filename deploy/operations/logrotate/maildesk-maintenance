@@ -1,0 +1,10 @@
+/var/log/docker-cleanup.log /var/log/competitor-scanner/*.log {
+ daily
+ rotate 14
+ maxage 14
+ maxsize 20M
+ missingok
+ notifempty
+ compress
+ copytruncate
+}

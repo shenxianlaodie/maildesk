@@ -1,0 +1,7 @@
+[Unit]
+Description=Record maildesk resource pressure and response latency
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/sbin/maildesk-performance.py
+TimeoutStartSec=20s
+Nice=10
