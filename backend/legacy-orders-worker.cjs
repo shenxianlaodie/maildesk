@@ -66,4 +66,4 @@ parentPort.on('message',async({id,method,args})=>{try{if(!available)await initia
  else if(method==='status')result={autoRefresh:false,updated:cache.prepare("SELECT value FROM metadata WHERE key='updated'").get()?.value,error:refreshError,count:cache.prepare('SELECT count(*) n FROM orders').get().n};
  else throw Error('INVALID_LEGACY_METHOD');
  parentPort.postMessage({id,result});
- }catch(e){parentPort.postMessage({id,error:['ORDER_RESULT_LIMIT','INVALID_LEGACY_METHOD'].includes(e.message)||/^ORDER_REFRESH_[A-Z_]+$/.test(e.message)?e.message:'ORDER_DATABASE_UNAVAILABLE'});}});
+ }catch(e){parentPort.postMessage({id,error:['ORDER_RESULT_LIMIT','INVALID_LEGACY_METHOD'].includes(e.message)||/^ORDER_(?:REFRESH|ADDRESS)_[A-Z_]+$/.test(e.message)?e.message:'ORDER_DATABASE_UNAVAILABLE'});}});

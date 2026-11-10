@@ -2,7 +2,7 @@
 const table='public.support_order_snapshots';
 const columns=`id::text,store_subdomain,order_id,order_number,customer_email,raw_order_json->'customer'->>'email' AS contact_email,shipping_address_json->>'email' AS shipping_email,raw_order_json->>'email' AS checkout_email,raw_order_json->'fulfillments' AS fulfillments`;
 const normal=v=>String(v||'').trim().toLowerCase();
-function createOrderLookup(read,{clock=Date.now,ttl=60000,fullInterval=21600000,maxStale=Math.min(fullInterval,600000),pageSize=500,coldEmailLookup=null}={}){
+function createOrderLookup(read,{clock=Date.now,ttl=60000,fullInterval=21600000,maxStale=Math.min(fullInterval,600000),pageSize=500,coldEmailLookup=null,directIdentifierLookup=null}={}){
  let rows=null,pending=null,checkedAt=0,fullAt=0,high='0',closed=false,emailIndex=new Map();
  async function refresh(force=false){if(pending){await pending;if(!force)return;}if(closed)throw Error('ORDER_LOOKUP_CLOSED');
   pending=(async()=>{const started=clock(),full=force||!rows||started-fullAt>=fullInterval;const data=[];let cursor='0';
@@ -13,11 +13,11 @@ function createOrderLookup(read,{clock=Date.now,ttl=60000,fullInterval=21600000,
   })();try{await pending;}finally{pending=null;}
  }
  async function ready(){if(!rows||clock()-checkedAt>=maxStale)await refresh();else if(clock()-checkedAt>=ttl)refresh().catch(()=>{});return rows;}
- async function emails(values){if(!rows&&coldEmailLookup){void ready().catch(()=>{});return coldEmailLookup(values.map(normal));}await ready();const ids=new Set();for(const e of values.map(normal))for(const id of emailIndex.get(e)||[])ids.add(id);return [...ids];}
+ function needsDirect(){if(closed)throw Error('ORDER_LOOKUP_CLOSED');return !rows||clock()-checkedAt>=maxStale;}
+ async function emails(values){const emails=[...new Set(values.map(normal).filter(Boolean))];if(!emails.length)return[];if(needsDirect()&&coldEmailLookup){void ready().catch(()=>{});return coldEmailLookup(emails);}await ready();const ids=new Set();for(const e of emails)for(const id of emailIndex.get(e)||[])ids.add(id);return [...ids];}
  async function search(term){const q=normal(term);if(!q)return[];return[...(await ready()).values()].filter(r=>[...r.numbers,...r.emails,...r.tracking].some(v=>v.includes(q))).map(r=>r.id);}
- async function identifiers(values){const wanted=new Set(values.map(normal));return[...(await ready()).values()].filter(r=>[...r.numbers,...r.tracking].some(v=>wanted.has(v))).map(r=>r.id);}
+ async function identifiers(values){const wanted=new Set(values.map(normal).filter(Boolean));if(!wanted.size)return[];if(needsDirect()&&directIdentifierLookup){void ready().catch(()=>{});return directIdentifierLookup([...wanted]);}const records=[...(await ready()).values()],orders=records.filter(r=>r.numbers.some(v=>wanted.has(v)));for(const r of orders)for(const number of r.numbers)wanted.delete(number);return [...new Set([...orders,...records.filter(r=>r.tracking.some(v=>wanted.has(v)))].map(r=>r.id))];}
  async function customers(term,manual=[]){const ids=new Set([...await search(term),...manual.map(String)]);return[...(await ready()).values()].filter(r=>ids.has(r.id));}
  return{emails,search,identifiers,customers,warm:ready,refreshAll:()=>refresh(true),async close(){closed=true;if(pending)await pending.catch(()=>{});rows=null;emailIndex.clear();}};
 }
 module.exports={createOrderLookup};
-
