@@ -101,3 +101,5 @@ CREATE TABLE IF NOT EXISTS ai_jobs(message_id TEXT PRIMARY KEY REFERENCES messag
 CREATE TABLE IF NOT EXISTS outgoing_routes(outgoing_id TEXT PRIMARY KEY REFERENCES outgoing(id),inbox_id TEXT NOT NULL REFERENCES inboxes(id),from_address TEXT NOT NULL,shop_id TEXT,order_id TEXT);
 
 CREATE TABLE IF NOT EXISTS order_feedback(order_id TEXT PRIMARY KEY REFERENCES orders(id),reason TEXT NOT NULL,actor_id TEXT NOT NULL REFERENCES staff(id),updated_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS outgoing_failures(outgoing_id TEXT PRIMARY KEY REFERENCES outgoing(id),at TEXT NOT NULL,details TEXT NOT NULL);

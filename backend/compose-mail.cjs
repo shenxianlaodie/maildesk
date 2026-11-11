@@ -25,7 +25,7 @@ async function sendNewMail(store,config,pilot,input,makeTransport=transport){
  store.actor(pilot.actor);
  const fingerprint=createHash('sha256').update(JSON.stringify([pilot.actor,pilot.inboxId,pilot.address,to,subject,input.text,attachments.map(a=>[a.filename,a.content.toString('base64')])])).digest('hex');
  const prior=store.db.prepare('SELECT o.*,c.fingerprint FROM outgoing o LEFT JOIN compose_requests c ON c.request_id=o.id WHERE o.id=?').get(input.requestId);
- if(prior){if(prior.fingerprint!==fingerprint)throw Error('REQUEST_ID_REUSED');return{status:prior.status,customerId:prior.customer_id};}
+ if(prior){if(prior.fingerprint!==fingerprint)throw Error('REQUEST_ID_REUSED');return{status:prior.status,customerId:prior.customer_id,failure:require('./send-failure.cjs').read(store.db,input.requestId)};}
  const real=store.db.prepare("SELECT value FROM app_settings WHERE key='sending_mode'").get()?.value==='real';
  if(!real&&!(config.testRecipients||[]).includes(to))throw Error('TEST_RECIPIENT_REQUIRED');
  const client=makeTransport(config,pilot.address);let customerId;
@@ -35,6 +35,6 @@ async function sendNewMail(store,config,pilot,input,makeTransport=transport){
   if(!info.accepted?.some(a=>String(a).toLowerCase()===to))throw Error('SMTP_REJECTED');
   store.transaction(()=>{store.db.prepare("UPDATE outgoing SET status='accepted' WHERE id=?").run(input.requestId);store.assignFirstReply(customerId,pilot.actor,input.requestId);store.audit(pilot.actor,'mail.compose',input.requestId,{recipient:to,inboxId:pilot.inboxId});});
   return{status:'accepted',customerId};
- }catch(e){const definite=['EAUTH','EENVELOPE'].includes(e.code)||e.message==='SMTP_REJECTED'||(e.responseCode>=400&&e.responseCode<600);const status=definite?'failed':'unknown';store.db.prepare('UPDATE outgoing SET status=? WHERE id=?').run(status,input.requestId);return{status,customerId};}finally{client.close();}
+ }catch(e){const definite=['EAUTH','EENVELOPE'].includes(e.code)||e.message==='SMTP_REJECTED'||(e.responseCode>=400&&e.responseCode<600);const status=definite?'failed':'unknown';store.db.prepare('UPDATE outgoing SET status=? WHERE id=?').run(status,input.requestId);const failure=require('./send-failure.cjs').record(store.db,input.requestId,e,config,input,to);return{status,customerId,failure};}finally{client.close();}
 }
 module.exports={installCompose,sendNewMail};
