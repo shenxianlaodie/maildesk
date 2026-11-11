@@ -12,7 +12,7 @@ test('logs persist, filter and paginate without duplicating entries; secrets are
 });
 test('gateway binds actors to authenticated sessions, restricts logs to admins and preserves identities on restart',async t=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'audit-gateway-'));
- const upstream=http.createServer((req,res)=>{let body='';req.on('data',v=>body+=v);req.on('end',()=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(req.url==='/api/send'?{status:'unknown'}:{saved:true}));});});
+ const upstream=http.createServer((req,res)=>{let body='';req.on('data',v=>body+=v);req.on('end',()=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(req.url==='/api/send'?{status:'unknown'}:req.url==='/api/desk/order'?{status:JSON.parse(body).testStatus||'pending'}:{saved:true}));});});
  await new Promise(r=>upstream.listen(0,'127.0.0.1',r));
  let adminRole='admin';const dingtalk={getUser:i=>i?{...i,role:i.unionId==='admin-1'?adminRole:'staff'}:null,redirectUri:'https://desk.example/maildesk/auth/dingtalk/callback',finish:async params=>params.get('authCode')==='admin'?{name:'财布',unionId:'admin-1',role:'admin'}:{name:'客服小张',unionId:'staff-1',role:'staff'}};
  const options={address:'127.0.0.1',port:0,upstreamPort:upstream.address().port,kind:'business',code:'business-secret-123',adminCode:'admin-secret-123',adminUpstreamPort:upstream.address().port,publicOrigin:'https://desk.example',basePath:'/maildesk',dingtalk,sessionFile:path.join(dir,'sessions.json'),auditFile:path.join(dir,'audit.sqlite')};
@@ -35,6 +35,12 @@ test('gateway binds actors to authenticated sessions, restricts logs to admins a
  await request(customerPath,{cookie:staff,body:JSON.stringify({patch:{status:'done'}})});
  const manualRows=JSON.parse((await request('/admin/api/operation-logs',{cookie:admin})).text).rows;
  assert.equal(manualRows.length,2);assert(manualRows.some(r=>r.action==='保存草稿'));assert(manualRows.some(r=>r.action==='修改会话状态'));
+ for(const action of ['read-address','address-status'])await request('/api/desk/order',{cookie:staff,body:JSON.stringify({action,orderId:'pg:12'})});
+ assert.equal(JSON.parse((await request('/admin/api/operation-logs',{cookie:admin})).text).rows.length,2);
+ for(const [testStatus,expected] of [['pending','accepted'],['processing','accepted'],['uncertain','unknown'],['failed','failed'],['succeeded','success']]){
+  await request('/api/desk/order',{cookie:staff,body:JSON.stringify({action:'update-address',orderId:'pg:12',testStatus})});
+  const found=JSON.parse((await request('/admin/api/operation-logs?q='+encodeURIComponent('修改地址'),{cookie:admin})).text).rows[0];assert.equal(found.action,'提交地址修改');assert.equal(found.result,expected);
+ }
  await request('/api/desk/profile',{cookie:staff,body:JSON.stringify({customerId:'C-1',vip:true,password:'NEVER_STORE_THIS',actor:'财布',role:'admin'}),headers:{'x-user-name':'forged-admin','x-user-role':'admin'}});
  await request('/api/send',{cookie:staff,body:JSON.stringify({messageId:'M-1',text:'PRIVATE_EMAIL'})});
  await request('/admin/api/settings/ai',{cookie:admin,body:JSON.stringify({apiKey:'SECRET_AI_KEY',model:'test'})});
