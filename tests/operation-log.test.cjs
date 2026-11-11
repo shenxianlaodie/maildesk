@@ -12,7 +12,7 @@ test('logs persist, filter and paginate without duplicating entries; secrets are
 });
 test('gateway binds actors to authenticated sessions, restricts logs to admins and preserves identities on restart',async t=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'audit-gateway-'));
- const upstream=http.createServer((req,res)=>{let body='';req.on('data',v=>body+=v);req.on('end',()=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(req.url==='/api/send'?{status:'unknown'}:req.url==='/api/desk/order'?{status:JSON.parse(body).testStatus||'pending'}:{saved:true}));});});
+ const upstream=http.createServer((req,res)=>{let body='';req.on('data',v=>body+=v);req.on('end',()=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(req.url==='/api/send'?{status:'unknown',failure:{code:'ETIMEDOUT',stageLabel:'发送',reason:'邮件服务器响应超时。',responseCode:null,response:''}}:req.url==='/api/desk/order'?{status:JSON.parse(body).testStatus||'pending'}:{saved:true}));});});
  await new Promise(r=>upstream.listen(0,'127.0.0.1',r));
  let adminRole='admin';const dingtalk={getUser:i=>i?{...i,role:i.unionId==='admin-1'?adminRole:'staff'}:null,redirectUri:'https://desk.example/maildesk/auth/dingtalk/callback',finish:async params=>params.get('authCode')==='admin'?{name:'财布',unionId:'admin-1',role:'admin'}:{name:'客服小张',unionId:'staff-1',role:'staff'}};
  const options={address:'127.0.0.1',port:0,upstreamPort:upstream.address().port,kind:'business',code:'business-secret-123',adminCode:'admin-secret-123',adminUpstreamPort:upstream.address().port,publicOrigin:'https://desk.example',basePath:'/maildesk',dingtalk,sessionFile:path.join(dir,'sessions.json'),auditFile:path.join(dir,'audit.sqlite')};
@@ -46,7 +46,7 @@ test('gateway binds actors to authenticated sessions, restricts logs to admins a
  await request('/admin/api/settings/ai',{cookie:admin,body:JSON.stringify({apiKey:'SECRET_AI_KEY',model:'test'})});
  let rows=JSON.parse((await request('/admin/api/operation-logs',{cookie:admin})).text).rows;
  const profile=rows.find(r=>r.action==='修改顾客资料');assert.equal(profile.account,'客服小张');assert.equal(profile.role,'staff');assert.equal(profile.account_id,'staff-1');assert.equal(profile.details.customerId,'C-1');assert.equal(profile.result,'success');
- assert.equal(rows.find(r=>r.action==='发送邮件').result,'unknown');
+ assert.equal(rows.find(r=>r.action==='发送邮件').result,'unknown');assert.equal(rows.find(r=>r.action==='发送邮件').details.smtpCode,'ETIMEDOUT');assert.equal(rows.find(r=>r.action==='发送邮件').details.smtpStage,'发送');
  assert.equal(rows.find(r=>r.action==='修改 AI 配置').account,'财布');assert.doesNotMatch(JSON.stringify(rows),/NEVER_STORE_THIS|SECRET_AI_KEY|PRIVATE_EMAIL|authCode/);
  await gateway.close();gateway=createLanProxy(options);await gateway.listen();
  await request('/admin/api/settings/sending',{cookie:admin,body:JSON.stringify({mode:'test'})});
