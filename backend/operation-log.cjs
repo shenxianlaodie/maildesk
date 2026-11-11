@@ -16,6 +16,7 @@ function operation(method,pathname){
 }
 function shouldRecord(action,info){
  if(!action)return false;
+ if(action==='修改订单备注'&&['read-address','address-status'].includes(info.action))return false;
  if(action==='标记为未读')return info.read===false;
  if(action!=='更新会话 / 保存草稿')return true;
  const fields=info.fields||[];
@@ -40,7 +41,8 @@ function details(input,pathname){
  const attachment=/\/api\/(?:attachments|desk\/files)\/([a-f0-9-]+)(?:\/(\d+))?$/.exec(pathname);if(attachment)result.attachmentId=attachment[1]+(attachment[2]?'/'+attachment[2]:'');
  return result;
 }
-function actionTitle(action,info){if(action!=='更新会话 / 保存草稿')return action;const fields=info.fields||[];return [fields.includes('draft')?'保存草稿':'',fields.includes('status')?'修改会话状态':'',fields.includes('assigneeId')?'分配客服':'',fields.includes('replyInboxId')?'选择回复邮箱':''].filter(Boolean).join('、')||action;}
+function actionTitle(action,info){if(action==='修改订单备注'&&info.action==='update-address')return '提交地址修改';if(action!=='更新会话 / 保存草稿')return action;const fields=info.fields||[];return [fields.includes('draft')?'保存草稿':'',fields.includes('status')?'修改会话状态':'',fields.includes('assigneeId')?'分配客服':'',fields.includes('replyInboxId')?'选择回复邮箱':''].filter(Boolean).join('、')||action;}
+function addressOutcome(data){if(data.error)return 'failed';return {pending:'accepted',processing:'accepted',succeeded:'success',failed:'failed',uncertain:'unknown'}[data.status]||'unknown';}
 function actor(identity,admin=false){if(identity?.auth==='password')return{account:identity.name,accountId:identity.username,role:'staff',auth:'password'};return identity?.auth==='access-code'?{account:'共享管理访问码',accountId:'shared-admin',role:'admin',auth:'access-code'}:identity?{account:String(identity.name||'钉钉用户'),accountId:String(identity.unionId||identity.staffId||''),role:admin?'admin':identity.role==='admin'?'admin':'staff',auth:'dingtalk'}:{account:admin?'共享管理访问码':'共享工作台访问码',accountId:admin?'shared-admin':'shared-business',role:admin?'admin':'staff',auth:'access-code'};}
 function createOperationLog(filename){
  const db=new DatabaseSync(filename);
@@ -54,10 +56,15 @@ function createOperationLog(filename){
    const before=Number(params.get('before'));if(Number.isSafeInteger(before)&&before>0){where.push('id < ?');values.push(before);}
    const role=params.get('role');if(['admin','staff','unknown'].includes(role)){where.push('role = ?');values.push(role);}
    const result=params.get('result');if(['success','failed','unknown','accepted'].includes(result)){where.push('result = ?');values.push(result);}
-   const q=(params.get('q')||'').trim().slice(0,160);if(q){where.push('(instr(account,?)>0 OR instr(account_id,?)>0 OR instr(action,?)>0 OR instr(details,?)>0)');values.push(q,q,q,q);}
-   const rows=db.prepare('SELECT * FROM operations'+(where.length?' WHERE '+where.join(' AND '):'')+' ORDER BY id DESC LIMIT 51').all(...values);
+   const q=(params.get('q')||'').trim().slice(0,160).replace(/修改地址/g,'地址修改');if(q){where.push('(instr(account,?)>0 OR instr(account_id,?)>0 OR instr(action,?)>0 OR instr(details,?)>0)');values.push(q,q,q,q);}
+   // Normalize old labels for search/display only; keep the original audit records intact.
+   const oldAddress="action='修改订单备注' AND route IN ('/api/desk/order','/admin/api/desk/order')";
+   const source=`(SELECT id,at,account,account_id,role,auth,route,status,details,
+    CASE WHEN ${oldAddress} THEN CASE json_extract(details,'$.action') WHEN 'update-address' THEN '提交地址修改' WHEN 'read-address' THEN '读取订单地址' WHEN 'address-status' THEN '查询地址修改结果' ELSE action END ELSE action END AS action,
+    CASE WHEN ${oldAddress} AND json_extract(details,'$.action')='update-address' AND result='success' THEN 'unknown' ELSE result END AS result FROM operations)`;
+   const rows=db.prepare('SELECT * FROM '+source+(where.length?' WHERE '+where.join(' AND '):'')+' ORDER BY id DESC LIMIT 51').all(...values);
    const more=rows.length>50;return{rows:rows.slice(0,50).map(r=>({...r,details:JSON.parse(r.details)})),next:more?rows[49].id:null};
   },close:()=>db.close()
  };
 }
-module.exports={createOperationLog,operation,details,actor,actionTitle,shouldRecord};
+module.exports={createOperationLog,operation,details,actor,actionTitle,shouldRecord,addressOutcome};
