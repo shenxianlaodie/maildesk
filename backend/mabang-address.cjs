@@ -49,22 +49,29 @@ function createMabangAddress(store,fetchSuccesses,{interval=60000,clock=()=>new 
   if(!r||!allowed(r,scope))throw Error('MAILBOX_FORBIDDEN');
   return db.prepare('SELECT c.*,a.actor_name confirmed_by,a.confirmed_at FROM mabang_address_changes c LEFT JOIN mabang_address_confirmations a ON a.request_id=c.request_id WHERE order_key=? ORDER BY completed_at DESC,length(c.request_id) DESC,c.request_id DESC').all(r.order_key).map(view);
  }
- async function confirm(requestId,actor,scope){
+ async function confirmMany(requestIds,actor,scope){
+  if(!Array.isArray(requestIds)||!requestIds.length)throw Error('INVALID_REQUEST');
+  const ids=[...new Set(requestIds)];
+  for(const requestId of ids){
   if(typeof requestId!=='string'||!/^\d+$/.test(requestId))throw Error('INVALID_REQUEST');
+  }
   const staff=db.prepare('SELECT id,display_name FROM staff WHERE id=? AND active=1').get(actor);
   if(!staff)throw Error('STAFF_REQUIRED');
-  const target=db.prepare('SELECT * FROM mabang_address_changes WHERE request_id=?').get(requestId);
+  const targets=ids.map(requestId=>{const target=db.prepare('SELECT * FROM mabang_address_changes WHERE request_id=?').get(requestId);
   if(!target||!allowed(target,scope))throw Error('MAILBOX_FORBIDDEN');
+  return target;});
   await refresh(); // Never acknowledge a stale address when a newer success exists.
-  const row=db.prepare(latest+' AND r.order_key=?').get(target.order_key);
-  if(row.request_id!==requestId)throw Error('MABANG_ADDRESS_CHANGED');
+  for(const target of targets){const row=db.prepare(latest+' AND r.order_key=?').get(target.order_key);
+  if(row.request_id!==target.request_id)throw Error('MABANG_ADDRESS_CHANGED');}
   store.transaction(()=>{
+   for(const target of targets){const requestId=target.request_id;
    const saved=db.prepare('INSERT OR IGNORE INTO mabang_address_confirmations VALUES(?,?,?,?)').run(requestId,staff.id,staff.display_name,clock());
-   if(saved.changes)store.audit(actor,'order.mabang_address_confirmed',target.order_id,{requestId,store:target.store_domain});
+   if(saved.changes)store.audit(actor,'order.mabang_address_confirmed',target.order_id,{requestId,store:target.store_domain});}
   });
   return {saved:true};
  }
+ async function confirm(requestId,actor,scope){return confirmMany([requestId],actor,scope);}
  async function tick(){if(closed)return;try{await refresh();}catch{}finally{if(!closed){timer=setTimeout(tick,interval);timer.unref();}}}
- return {refresh,list,history,confirm,start:()=>{if(!closed&&!timer){timer=setTimeout(tick,1000);timer.unref();}},close:async()=>{closed=true;clearTimeout(timer);await active?.catch(()=>{});}};
+ return {refresh,list,history,confirm,confirmMany,start:()=>{if(!closed&&!timer){timer=setTimeout(tick,1000);timer.unref();}},close:async()=>{closed=true;clearTimeout(timer);await active?.catch(()=>{});}};
 }
 module.exports={createMabangAddress};

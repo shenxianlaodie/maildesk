@@ -32,3 +32,15 @@ test('remote failure preserves pending work and blocks confirmation',async()=>{
 test('lower request id completing later wins and is not skipped',async()=>{
  const f=fixture();f.set([f.row(20)]);await f.svc.refresh();await f.svc.confirm('20','alice');f.set([f.row(20),f.row(1,{completed_at:'2026-11-11T00:00:00Z'})]);await f.svc.refresh();assert.equal(f.svc.list().rows[0].request_id,'1');
 });
+test('batch confirms selected orders atomically and remains idempotent',async()=>{
+ const f=fixture();f.set([f.row(1),f.row(2,{order_id:'o2'})]);await f.svc.refresh();
+ await f.svc.confirmMany(['1','2'],'alice');assert.equal(f.svc.list().pending,0);assert.equal(f.events.length,2);
+ await f.svc.confirmMany(['1','2'],'alice');assert.equal(f.events.length,2);
+});
+test('batch rejects stale, unauthorized and invalid selections without partial writes',async()=>{
+ const f=fixture();f.set([f.row(1),f.row(2,{order_id:'o2'})]);await f.svc.refresh();
+ await assert.rejects(f.svc.confirmMany(['1','2'],'alice',{shops:new Set()}),/MAILBOX_FORBIDDEN/);
+ await assert.rejects(f.svc.confirmMany([],'alice'),/INVALID_REQUEST/);
+ f.set([f.row(1),f.row(2,{order_id:'o2'}),f.row(3,{order_id:'o2'})]);
+ await assert.rejects(f.svc.confirmMany(['1','2'],'alice'),/MABANG_ADDRESS_CHANGED/);assert.equal(f.events.length,0);assert.equal(f.svc.list().pending,2);
+});
