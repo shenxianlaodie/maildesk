@@ -1,11 +1,11 @@
 'use strict';
 let mabangData=null,mabangBusy=false,mabangStatus='pending',mabangQuery='';
 const mabangSelected=new Set();
-let mabangConfirming=false;
+let mabangConfirming=false,mabangRenderedIds=null;
 function mabangVisibleRows(){const term=mabangQuery.trim().toLowerCase();return (mabangData?.rows||[]).filter(r=>(mabangStatus==='all'||(mabangStatus==='pending'?r.pending:!r.pending))&&(!term||[r.order_number,r.store_domain].some(s=>s.toLowerCase().includes(term))));}
 function mabangPruneSelection(){const visible=new Set(mabangVisibleRows().map(r=>r.request_id));for(const id of mabangSelected)if(!visible.has(id))mabangSelected.delete(id);}
 function mabangSelectedRows(){return mabangVisibleRows().filter(r=>mabangSelected.has(r.request_id));}
-function mabangSelectAll(checked){for(const r of mabangVisibleRows())if(checked)mabangSelected.add(r.request_id);else mabangSelected.delete(r.request_id);}
+function mabangSelectAll(checked){for(const r of mabangVisibleRows().filter(r=>!mabangRenderedIds||mabangRenderedIds.has(r.request_id)))if(checked)mabangSelected.add(r.request_id);else mabangSelected.delete(r.request_id);}
 function mabangSelectionControls(){
  const count=mabangSelectedRows().length,total=mabangVisibleRows().length,all=$('#mabang-select-all');
  if(!all)return;all.checked=total>0&&count===total;all.indeterminate=count>0&&count<total;all.disabled=!total;
@@ -66,7 +66,7 @@ async function openMabangAddresses(){
 }
 function renderMabangAddresses(){
  if(!mabangData)return;
- mabangPruneSelection();const rows=mabangVisibleRows();
+ mabangPruneSelection();const rows=mabangVisibleRows();mabangRenderedIds=new Set(rows.map(r=>r.request_id));
  modal('待同步马帮',`<p>店匠地址已更新，马帮需要人工修改。确认前请在马帮核对并保存最新地址。</p>
  <p role="status">${mabangData.error?esc(mabangData.error):mabangData.last_success?'最近核对：'+esc(fullTime(mabangData.last_success)):'正在回查历史记录'} · 待处理 ${mabangData.pending} 单</p>
  <div class="address-actions" style="display:flex;flex-wrap:wrap;gap:8px"><input id="mabang-search" style="flex:1;min-width:140px" placeholder="搜索订单号／店铺" aria-label="搜索改址订单" value="${esc(mabangQuery)}"><select id="mabang-status" aria-label="马帮同步状态">${[['pending','待核对／待同步'],['done','已人工同步'],['all','全部']].map(([v,t])=>`<option value="${v}" ${mabangStatus===v?'selected':''}>${t}</option>`).join('')}</select><button id="mabang-search-button" class="soft" style="white-space:nowrap;flex-shrink:0">查询</button><button id="mabang-refresh" class="soft" style="white-space:nowrap;flex-shrink:0">刷新</button></div>

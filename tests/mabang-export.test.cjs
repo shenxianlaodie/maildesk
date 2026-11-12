@@ -42,3 +42,10 @@ test('batch UI confirms only pending selection and preserves it on failure or ca
  accept=true;fail=true;await vm.runInContext('confirmSelectedMabangAddresses()',ctx);assert.equal(rows[0].pending,true);assert.equal(vm.runInContext('mabangSelected.size',ctx),2);
  fail=false;await vm.runInContext('confirmSelectedMabangAddresses()',ctx);assert.deepEqual(Array.from(calls[1].requestIds),['1']);assert.equal(rows[0].pending,false);assert.equal(vm.runInContext('mabangSelected.has("1")',ctx),false);
 });
+
+test('select all cannot select an address received by background refresh but not displayed',()=>{
+ const vm=require('node:vm'),fs=require('node:fs');const ctx=vm.createContext({setInterval:()=>0,window:{},document:{},Set});
+ vm.runInContext(fs.readFileSync(require.resolve('../backend/public/desk/mabang-address.js'),'utf8'),ctx);
+ vm.runInContext("mabangRenderedIds=new Set(['1']);mabangData={rows:[{request_id:'2',order_number:'LQ1',store_domain:'a',pending:true}]};mabangSelectAll(true);",ctx);
+ assert.equal(vm.runInContext('mabangSelected.size',ctx),0);
+});
