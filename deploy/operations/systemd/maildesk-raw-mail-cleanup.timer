@@ -1,0 +1,10 @@
+[Unit]
+Description=Gradually reclaim expired Maildesk raw MIME copies
+
+[Timer]
+OnCalendar=*-*-* 03..05:*:00 Asia/Shanghai
+Persistent=false
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target
