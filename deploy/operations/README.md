@@ -1,5 +1,13 @@
 # 服务器运行、监控与保留规则
 
+## 原始邮件副本清理
+
+`maildesk-raw-mail-cleanup.py` 默认只预览，`--apply` 才删除。仅删除归档创建和大邮件任务完成均超过 7 天、任务为 `done`、存在对应邮件和 `mime_imports` 标记、全部已记录附件的文件及长度均有效的原始 MIME 副本。失败、复核、重试、尚未完整导入的记录保留。正文、附件、邮箱服务商邮件不改动。
+
+安装脚本到 `/usr/local/sbin/maildesk-raw-mail-cleanup.py`（0755），对应 service/timer 到 `/etc/systemd/system/`。先运行 `python3 test_raw_mail_cleanup.py` 及不带 `--apply` 的预览，再验证 unit 并启用 timer。服务以数据目录所属 UID/GID 1000 运行，每天北京时间凌晨 03:00—05:59 每分钟触发，每次最多删除一份，独立于客服进程，数据库锁等待最多一秒。失败会回滚事务并由下次定时重试。服务通过私有挂载路径访问数据，避免放宽宿主机父目录权限。独立进程仍会短暂持有 SQLite 写锁，因此安排在凌晨执行。日志只含计数，不输出邮件原文或客户信息。
+
+删除释放的是 SQLite 内部可复用页，不自动执行 VACUUM，数据库文件不会立即缩小。停止自动清理使用 `systemctl disable --now maildesk-raw-mail-cleanup.timer`；这不会恢复已删除的冗余原文，仍保留的正文和附件不受影响。
+
 这些文件记录当前 Maildesk Linux/Docker 部署配置。它们不会随应用启动自动安装；修改宿主机配置前应备份目标文件，并核对域名、路径、容器名和用户组。不要用于其他服务器而不调整配置。
 
 ## 应用运行

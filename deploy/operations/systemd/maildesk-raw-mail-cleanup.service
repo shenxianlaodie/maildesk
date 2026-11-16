@@ -1,0 +1,20 @@
+[Unit]
+Description=Remove expired successfully imported Maildesk raw MIME copies
+After=docker.service
+
+[Service]
+Type=oneshot
+User=1000
+Group=1000
+RuntimeDirectory=maildesk-raw-mail-cleanup
+RuntimeDirectoryMode=0700
+BindPaths=/opt/maildesk/data:/run/maildesk-raw-mail-cleanup/data
+ExecStart=/usr/bin/python3 /usr/local/sbin/maildesk-raw-mail-cleanup.py --database /run/maildesk-raw-mail-cleanup/data/maildesk.sqlite --apply
+Nice=15
+IOSchedulingClass=idle
+TimeoutStartSec=45
+MemoryMax=128M
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/run/maildesk-raw-mail-cleanup
+PrivateTmp=true
