@@ -1,5 +1,6 @@
 'use strict';
 const {randomUUID}=require('node:crypto');
+const assignmentState=require('./assignment-state.cjs');
 const setting='unread_auto_assignment';
 function validate(config){
  if(!config||config.enabled!==true)return null;
@@ -27,7 +28,14 @@ function planUnreadAssignments(db,input){
   if(row.assignee_id!==null||sending.get(row.customer_id))continue;
   const eligible=members.filter(m=>m.after<config.target&&permits(m,row)).sort((a,b)=>a.after-b.after||(a.allowed?.size??Infinity)-(b.allowed?.size??Infinity));
   const member=eligible[0];if(!member)continue;
-  assignments.push({customerId:row.customer_id,staffId:member.id,revision:row.revision,oldest:row.oldest});member.after++;member.added++;
+  assignments.push({customerId:row.customer_id,staffId:member.id,previousAssigneeId:null,revision:row.revision,oldest:row.oldest});member.after++;member.added++;
+ }
+ if(config.transferExcess===true){
+  for(const row of [...rows].sort((a,b)=>String(b.oldest).localeCompare(String(a.oldest))||a.customer_id.localeCompare(b.customer_id))){
+   const donor=members.find(m=>m.id===row.assignee_id);if(!donor||donor.after<=config.target||!permits(donor,row)||sending.get(row.customer_id))continue;
+   const recipient=members.filter(m=>m.id!==donor.id&&m.after<config.target&&permits(m,row)).sort((a,b)=>a.after-b.after||(a.allowed?.size??Infinity)-(b.allowed?.size??Infinity))[0];if(!recipient)continue;
+   assignments.push({customerId:row.customer_id,staffId:recipient.id,previousAssigneeId:donor.id,revision:row.revision,oldest:row.oldest});donor.after--;recipient.after++;recipient.added++;
+  }
  }
  return{enabled:true,target:config.target,assignments,members:members.map(({id,before,after,added})=>({id,before,after,added}))};
 }
@@ -39,12 +47,14 @@ function refillUnreadAssignments(store,{clock=Date.now}={}){
   const plan=planUnreadAssignments(store.db,current?JSON.parse(current.value):null);
   if(!plan.enabled)return{enabled:false,assigned:0,members:[]};
   const at=new Date(clock()).toISOString(),runId=randomUUID();
-  const assign=store.db.prepare('UPDATE customer_work SET assignee_id=?,revision=revision+1,updated_at=? WHERE customer_id=? AND assignee_id IS NULL AND revision=?');
+  const assign=store.db.prepare('UPDATE customer_work SET assignee_id=?,revision=revision+1,updated_at=? WHERE customer_id=? AND assignee_id IS ? AND revision=?');
   for(const item of plan.assignments){
-   const result=assign.run(item.staffId,at,item.customerId,item.revision);if(result.changes!==1)throw Error('UNREAD_ASSIGNMENT_CONFLICT');
-   store.audit('local-operator','customer.unread_auto_assignment',item.customerId,{runId,assigneeId:item.staffId,previousAssigneeId:null,previousRevision:item.revision,oldestUnread:item.oldest,target:plan.target});
+   const result=assign.run(item.staffId,at,item.customerId,item.previousAssigneeId,item.revision);if(result.changes!==1)throw Error('UNREAD_ASSIGNMENT_CONFLICT');
+   if(item.previousAssigneeId!==null)assignmentState.preserveTransferDraft(store.db,item.customerId,item.previousAssigneeId);
+   assignmentState.bumpAssignment(store.db,item.customerId,{transferred:item.previousAssigneeId!==null});
+   store.audit('local-operator','customer.unread_auto_assignment',item.customerId,{runId,assigneeId:item.staffId,previousAssigneeId:item.previousAssigneeId,previousRevision:item.revision,oldestUnread:item.oldest,target:plan.target});
   }
-  const result={enabled:true,at,runId,target:plan.target,assigned:plan.assignments.length,members:plan.members};
+  const result={enabled:true,at,runId,target:plan.target,assigned:plan.assignments.length,transferred:plan.assignments.filter(a=>a.previousAssigneeId!==null).length,members:plan.members};
   store.db.prepare('INSERT OR REPLACE INTO app_settings(key,value) VALUES(?,?)').run(setting+'_last_run',JSON.stringify(result));return result;
  });
 }
