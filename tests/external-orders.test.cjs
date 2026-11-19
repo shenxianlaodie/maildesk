@@ -16,7 +16,11 @@ test('business HTTP reads remote orders on demand; links, notes and mail stay lo
   const meta=await request('desk/meta');assert.equal(meta.body.orderSource,'postgresql');store.linkInboxShop(PILOT.inboxId,shopId(row.store_subdomain));
   assert.equal((await request('orders?q=O-100')).body[0].id,'pg:123');
   const beforeSearch=reads.length;assert.equal((await request('desk/conversations?q='+encodeURIComponent(row.customer_email))).body.total,1);assert.equal(reads.length,beforeSearch);await request('desk/conversations?q=Help&scope=mail');assert.equal(reads.length,beforeSearch);
-  const before=reads.length;const deferred=await request('desk/customers/'+message.customerId+'?orders=defer');assert.equal(reads.length,before);assert.equal(deferred.body.ordersLoading,true);assert.equal(deferred.body.messages[0].body_text,'Local mail');assert.equal((await request('desk/customers/'+message.customerId+'?orders=only')).body.orders[0].id,'pg:123');
+  const before=reads.length;
+  const opening=await request('desk/customers/'+message.customerId+'?view=opening');
+  assert.equal(opening.body.message.body_text,'Local mail');assert.equal(opening.body.canReply,true);assert.ok(Number.isInteger(opening.body.work.revision));assert.equal(reads.length,before);
+  const preview=await request('desk/customers/'+message.customerId+'?view=body');assert.deepEqual(preview.body,{subject:'Help',body_text:'Local mail'});assert.equal(reads.length,before);
+  const deferred=await request('desk/customers/'+message.customerId+'?orders=defer');assert.equal(reads.length,before);assert.equal(deferred.body.ordersLoading,true);assert.equal(deferred.body.messages[0].body_text,'Local mail');assert.equal((await request('desk/customers/'+message.customerId+'?orders=only')).body.orders[0].id,'pg:123');
   const readsBeforeAssistant=reads.length;const combined=await request('desk/customers/'+message.customerId+'?orders=only');assert.equal(combined.body.assistant.mode,'pending');assert.equal(combined.body.assistant.text,'');assert.equal(reads.length,readsBeforeAssistant);
   const d=await request('desk/customers/'+message.customerId);assert.equal(d.body.messages[0].body_text,'Local mail');assert.equal(d.body.orders[0].order_number,'O-100');
   assert.equal((await request('desk/conversations?q=O-100')).body.total,1);

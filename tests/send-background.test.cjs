@@ -3,7 +3,7 @@ const source=fs.readFileSync(path.join(__dirname,'../backend/public/desk/app.js'
 const tick=()=>new Promise(r=>setImmediate(r));
 function fixture(){
  const state={id:'a',draft:'reply A',orderId:'order A',files:[],meta:{demo:false},loadSeq:1},calls=[],waiting=[],selected=[],selectors=[],controls={};
- const context=vm.createContext({state,Map,Promise,FileReader:class{},drafts:new Map(),replySignatures:new Map(),replyTemplates:new Map(),toast:()=>{},assignmentBlocked:()=>false,assignmentWatch:{invalidate(){}},replyBody:()=>state.draft,lastInbound:()=>({id:'message '+state.id}),requestUUID:()=> 'request '+state.id,
+ const context=vm.createContext({state,performance,Map,Promise,FileReader:class{},drafts:new Map(),replySignatures:new Map(),replyTemplates:new Map(),toast:()=>{},assignmentBlocked:()=>false,assignmentWatch:{invalidate(){}},replyBody:()=>state.draft,lastInbound:()=>({id:'message '+state.id}),requestUUID:()=> 'request '+state.id,
  $:s=>controls[state.id+s]||=(s==='#reply-inbox'?{value:'inbox '+state.id}: {disabled:false}),
  $$:s=>{selectors.push(s);return [context.$('#send')];},saveDraft:async()=>{},renderWorkspace:()=>{context.$('#send').disabled=false;},selectCustomer:async id=>{selected.push(id);},
  api:async(route,input)=>{calls.push(input);return new Promise((resolve,reject)=>waiting.push({resolve,reject}));}});
@@ -17,6 +17,17 @@ test('switching customer during send preserves destination, draft, files and sel
  const f=fixture(),p=f.send();f.state.id='b';f.state.draft='reply B';f.state.orderId='order B';f.state.files=['file B'];f.state.requestId='request B';await tick();
  assert.equal(f.calls[0].text,'reply A');assert.equal(f.calls[0].messageId,'message a');assert.equal(f.calls[0].inboxId,'inbox a');assert.equal(f.calls[0].orderId,'order A');
  f.waiting[0].resolve({status:'accepted'});await p;assert.equal(f.state.draft,'reply B');assert.deepEqual(f.state.files,['file B']);assert.equal(f.state.requestId,'request B');assert.deepEqual(f.selected,[]);
+});
+test('accepted reply gives feedback and finishes while refresh is pending',async()=>{
+ const f=fixture(),events=[];
+ f.context.toast=()=>events.push('confirmed');
+ f.context.selectCustomer=()=>{events.push('refresh');return new Promise(()=>{});};
+ const sent=f.send();await tick();f.waiting[0].resolve({status:'accepted'});await sent;
+ assert.deepEqual(events,['confirmed','refresh']);
+});
+test('starting navigation before acceptance never reopens the previous customer',async()=>{
+ const f=fixture(),sent=f.send();await tick();f.state.loadSeq++;
+ f.waiting[0].resolve({status:'accepted'});await sent;assert.deepEqual(f.selected,[]);
 });
 test('another customer can send while the first reply is pending',async()=>{
  const f=fixture(),a=f.send();f.state.id='b';f.state.draft='reply B';f.state.requestId=null;const b=f.send();await tick();assert.equal(f.calls.length,2);
