@@ -84,6 +84,12 @@ function createPilot({directory=path.resolve(__dirname,'../.maildesk'),port=4174
      else throw Error('METHOD_NOT_ALLOWED');
      json(res,200,result);return;
     }
+    if(req.method==='POST'&&url.pathname==='/api/desk/slow-send'){
+     const {requestId,kind,status,elapsedMs,prepareMs,requestMs}=requestInput;
+     if(!/^[0-9a-f-]{36}$/i.test(requestId)||!['reply','compose','compose-status'].includes(kind)||!['accepted','failed','unknown','sending','error'].includes(status)||![elapsedMs,prepareMs,requestMs].every(n=>Number.isFinite(n)&&n>=0)||prepareMs+requestMs>elapsedMs+0.01)throw Error('INVALID_SEND_TIMING');
+     if(elapsedMs>5000)store.audit(scope?.actor||PILOT.actor,'mail.slow_send',requestId,{kind,status,elapsedMs,prepareMs,requestMs,afterResponseMs:Math.max(0,elapsedMs-prepareMs-requestMs)});
+     json(res,200,{ok:true});return;
+    }
     if(url.pathname.startsWith('/api/desk/')){json(res,200,await deskRoute({url,method:req.method,input:req.method==='POST'?requestInput:null,store,vault,pilot:PILOT,demo,accountManager,remoteOrders,addressQueue,scope,currentRole:req.headers['x-maildesk-role']||'admin',currentActor:require('./reply-stats.cjs').sendingActor(store,req.headers,PILOT.actor)}));return;}
     if(demo&&req.method==='POST'&&['/api/send','/api/sync','/api/credentials','/api/accounts','/api/ai-config','/api/smtp-config','/api/smtp-verify','/api/account-smtp-verify'].includes(url.pathname)){json(res,403,{error:'DEMO_EXTERNAL_DISABLED'});return;}
     if(['/api/tools','/api/analytics','/api/templates','/api/classify','/api/order-feedback','/api/refund-proposal'].includes(url.pathname)){const result=await worktools(url.pathname,req.method,req.method==='POST'?requestInput:null,store,PILOT.actor,scope);json(res,result?200:405,result||{error:'METHOD_NOT_ALLOWED'});return;}
