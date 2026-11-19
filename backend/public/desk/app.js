@@ -233,17 +233,35 @@ function lockSendingComposer(){
  $$('.composer button,.composer select,.composer textarea,.composer input').forEach(el=>el.disabled=true);
  if($('#send'))$('#send').textContent='正在发送…';
 }
+function startSendTiming(kind,requestId){
+ const started=performance.now();
+ let submitted,received,status='error';
+ return {
+  submit(){submitted=performance.now();},
+  receive(result){received=performance.now();status=result.status;},
+  finish(){
+   const ended=performance.now(),elapsedMs=ended-started;
+   if(elapsedMs<=5000)return;
+   const prepareMs=(submitted??ended)-started;
+   const requestMs=submitted===undefined?0:(received??ended)-submitted;
+   void api('desk/slow-send',{kind,requestId,status,elapsedMs,prepareMs,requestMs}).catch(()=>{});
+  }
+ };
+}
 async function sendReply(){
  const id=state.id;
  if(assignmentBlocked()||sendingReplies.has(id)||$('#send')?.disabled)return;
  if(!replyBody().trim()&&!state.files.length)return toast('请先输入回复内容或添加附件。');
  const job={requestId:state.requestId||requestUUID(),messageId:lastInbound().id,text:state.draft,orderId:state.orderId||undefined,inboxId:$('#reply-inbox').value||undefined,files:[...state.files],demo:state.meta.demo,assignment:state.detail?.assignment?{...state.detail.assignment}:undefined};
+ const timing=job.demo?null:startSendTiming('reply',job.requestId);
  state.requestId=job.requestId;sendingReplies.set(id,job);retryReplies.set(id,job);lockSendingComposer();
  try{
   await saveDraft();
   const attachments=await Promise.all(job.files.map(f=>new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=()=>reject(Error('附件读取失败'));r.onload=()=>resolve({name:f.name,data:String(r.result).split(',')[1]});r.readAsDataURL(f);}))); 
   const {requestId,messageId,text,orderId,inboxId,assignment}=job;
+  timing?.submit();
   const result=await api(job.demo?'desk/send-demo':'send',{requestId,messageId,text,orderId,inboxId,attachments,assignment});
+  timing?.receive(result);
   if(['demo','accepted'].includes(result.status)){
    retryReplies.delete(id);drafts.set(id,'');replySignatures.delete(id);replyTemplates.delete(id);
    if(state.id===id){state.dirty=false;state.draft='';state.files=[];state.requestId=null;}
@@ -252,6 +270,7 @@ async function sendReply(){
    toast(result.status==='demo'?'演示回复已保存到本机，没有对外发送。':'邮件服务器已接收回复，实际送达需核对邮箱。');
   }else toast((result.failure?result.failure.stageLabel+'：'+result.failure.reason+' '+(result.failure.response||'')+' ':'')+(result.status==='unknown'?'发送结果未知，请先核对已发送邮件；重复点击不会重新发信。':'发送失败，草稿已保留。'));
  }catch(error){if(error.message==='ASSIGNMENT_CHANGED'&&state.id===id)assignmentWatch.invalidate(id);throw error;}finally{
+  timing?.finish();
   const pending=sendingReplies.get(id)===job;
   if(pending)sendingReplies.delete(id);
   if(pending&&state.id===id&&$('#send'))renderWorkspace();
@@ -279,16 +298,19 @@ function holdCompose(){composeHeld.push(composeDraft);composeDraft=emptyCompose(
 function composeFile(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve({name:file.name,data:String(reader.result).split(',')[1]});reader.onerror=()=>reject(Error('附件读取失败，请重新添加。'));reader.readAsDataURL(file);});}
 async function submitCompose(){
  const d=composeDraft;if(d.pending||d.result?.status==='accepted')return;const wasUncertain=!!d.payload;
+ const requestId=d.payload?.requestId||requestUUID();
+ const timing=startSendTiming(wasUncertain?'compose-status':'compose',requestId);
  d.pending=true;d.error='';renderCompose();updateComposeButton();
  try{
-  if(!d.payload)d.payload={requestId:requestUUID(),inboxId:d.inboxId,to:d.to,subject:d.subject,text:d.text,attachments:await Promise.all(d.files.map(composeFile))};
-  const result=await api('compose',d.payload);d.result=result;
+  if(!d.payload)d.payload={requestId,inboxId:d.inboxId,to:d.to,subject:d.subject,text:d.text,attachments:await Promise.all(d.files.map(composeFile))};
+  timing.submit();
+  const result=await api('compose',d.payload);timing.receive(result);d.result=result;
   if(result.status==='accepted'){toast('新邮件已由邮件服务器接收');}
   else if(result.status==='failed'){d.error=(result.failure?result.failure.stageLabel+'：'+result.failure.reason+' '+(result.failure.response||'')+' ':'')+'发送失败，内容已保留。';d.payload=null;}
   else if(result.status==='unknown'){d.error=(result.failure?result.failure.stageLabel+'：'+result.failure.reason+' ':'')+'发送结果尚未确认，请先核对发件箱。查询状态不会重复发送。';}
   else d.error='邮件仍在发送，可稍后查询状态。';
  }catch(e){d.error=errorText(e);if(!d.payload||(!wasUncertain&&['INVALID_EMAIL','INVALID_MAIL_SUBJECT','INVALID_REPLY_TEXT','INVALID_ATTACHMENT','ATTACHMENT_LIMIT','SMTP_CONFIG_REQUIRED','TEST_RECIPIENT_REQUIRED','MAILBOX_FORBIDDEN','REPLY_INBOX_REQUIRED','ACCOUNT_NOT_FOUND','INVALID_ACTOR','DEMO_EXTERNAL_DISABLED','INVALID_REQUEST_ID','BODY_TOO_LARGE'].includes(e.message))){d.payload=null;d.result=null;}else d.result={status:'unknown'};}
- finally{d.pending=false;renderCompose();updateComposeButton();}
+ finally{d.pending=false;renderCompose();updateComposeButton();timing.finish();}
 }
 function openCompose(to=''){
  if(state.meta.demo)return toast('演示模式不对外发送邮件。');
