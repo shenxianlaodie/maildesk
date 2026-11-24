@@ -13,14 +13,20 @@ function planUnreadAssignments(db,input){
  const members=config.staffIds.map(id=>{
   const staff=db.prepare('SELECT id FROM staff WHERE id=? AND active=1').get(id);if(!staff)return null;
   const access=db.prepare('SELECT inbox_ids FROM staff_mailbox_access WHERE staff_id=?').get(id);
-  return{id,allowed:access?new Set(JSON.parse(access.inbox_ids)):null,before:0,after:0,added:0};
+  const ids=access?JSON.parse(access.inbox_ids):null;
+  const cte=ids?require('./mailbox-permissions.cjs').createScope({db},id,ids).cte:'';
+  // Match the scoped 'awaiting my reply' tab, including read but unanswered mail.
+  const pending=db.prepare(cte+`SELECT w.customer_id,w.assignee_id FROM customer_work w WHERE (w.assignee_id=? OR EXISTS(SELECT 1 FROM messages u WHERE u.customer_id=w.customer_id AND u.direction='inbound' AND NOT EXISTS(SELECT 1 FROM message_reads rr WHERE rr.message_id=u.id))) AND EXISTS(
+   SELECT 1 FROM messages m WHERE m.customer_id=w.customer_id AND m.direction='inbound'
+   AND NOT EXISTS(SELECT 1 FROM outgoing o WHERE o.parent_id=m.id AND o.status IN('accepted','demo'))
+   AND NOT EXISTS(SELECT 1 FROM messages r WHERE r.customer_id=w.customer_id AND r.direction='outbound' AND r.sent_at>=m.sent_at))`).all(id);
+  return{id,allowed:ids?new Set(ids):null,pending:new Set(pending.map(r=>r.customer_id)),before:pending.filter(r=>r.assignee_id===id).length,after:0,added:0};
  }).filter(Boolean);
  const rows=db.prepare(`SELECT w.customer_id,w.assignee_id,w.revision,min(m.sent_at) oldest,json_group_array(DISTINCT m.inbox_id) inboxes
  FROM customer_work w JOIN messages m ON m.customer_id=w.customer_id
  WHERE m.direction='inbound' AND NOT EXISTS(SELECT 1 FROM message_reads r WHERE r.message_id=m.id)
  GROUP BY w.customer_id ORDER BY oldest ASC,w.customer_id`).all().map(r=>({...r,inboxes:JSON.parse(r.inboxes)}));
- const permits=(member,row)=>!member.allowed||row.inboxes.some(id=>member.allowed.has(id));
- for(const row of rows){const member=members.find(m=>m.id===row.assignee_id);if(member&&permits(member,row))member.before++;}
+ const permits=(member,row)=>member.pending.has(row.customer_id)&&(!member.allowed||row.inboxes.some(id=>member.allowed.has(id)));
  for(const member of members)member.after=member.before;
  const sending=db.prepare("SELECT 1 FROM outgoing WHERE customer_id=? AND status IN ('sending','unknown') LIMIT 1");
  const assignments=[];
