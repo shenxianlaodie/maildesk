@@ -33,7 +33,7 @@ async function sendNewMail(store,config,pilot,input,makeTransport=transport){
  try{
   const info=await client.sendMail({from:pilot.address,to,subject,text:input.text,attachments,messageId:`<${input.requestId}@${pilot.address.split('@')[1]}>`});
   if(!info.accepted?.some(a=>String(a).toLowerCase()===to))throw Error('SMTP_REJECTED');
-  store.transaction(()=>{store.db.prepare("UPDATE outgoing SET status='accepted' WHERE id=?").run(input.requestId);store.assignFirstReply(customerId,pilot.actor,input.requestId);store.audit(pilot.actor,'mail.compose',input.requestId,{recipient:to,inboxId:pilot.inboxId});});
+  store.transaction(()=>{store.db.prepare("UPDATE outgoing SET status='accepted' WHERE id=?").run(input.requestId);store.audit(pilot.actor,'mail.compose',input.requestId,{recipient:to,inboxId:pilot.inboxId});require('./replied-public-pool.cjs').releaseCompletedInTransaction(store,{customerId,actor:pilot.actor});});
   return{status:'accepted',customerId};
  }catch(e){const definite=['EAUTH','EENVELOPE'].includes(e.code)||e.message==='SMTP_REJECTED'||(e.responseCode>=400&&e.responseCode<600);const status=definite?'failed':'unknown';store.db.prepare('UPDATE outgoing SET status=? WHERE id=?').run(status,input.requestId);const failure=require('./send-failure.cjs').record(store.db,input.requestId,e,config,input,to);return{status,customerId,failure};}finally{client.close();}
 }

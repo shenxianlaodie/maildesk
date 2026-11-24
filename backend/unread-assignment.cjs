@@ -49,6 +49,7 @@ function refillUnreadAssignments(store,{clock=Date.now}={}){
  const raw=store.db.prepare('SELECT value FROM app_settings WHERE key=?').get(setting);
  if(!raw||!validate(JSON.parse(raw.value)))return{enabled:false,assigned:0,members:[]};
  return store.transaction(()=>{
+  const released=require('./replied-public-pool.cjs').releaseCompletedInTransaction(store);
   const current=store.db.prepare('SELECT value FROM app_settings WHERE key=?').get(setting);
   const plan=planUnreadAssignments(store.db,current?JSON.parse(current.value):null);
   if(!plan.enabled)return{enabled:false,assigned:0,members:[]};
@@ -60,7 +61,7 @@ function refillUnreadAssignments(store,{clock=Date.now}={}){
    assignmentState.bumpAssignment(store.db,item.customerId,{transferred:item.previousAssigneeId!==null});
    store.audit('local-operator','customer.unread_auto_assignment',item.customerId,{runId,assigneeId:item.staffId,previousAssigneeId:item.previousAssigneeId,previousRevision:item.revision,oldestUnread:item.oldest,target:plan.target});
   }
-  const result={enabled:true,at,runId,target:plan.target,assigned:plan.assignments.length,transferred:plan.assignments.filter(a=>a.previousAssigneeId!==null).length,members:plan.members};
+  const result={enabled:true,at,runId,released,target:plan.target,assigned:plan.assignments.length,transferred:plan.assignments.filter(a=>a.previousAssigneeId!==null).length,members:plan.members};
   store.db.prepare('INSERT OR REPLACE INTO app_settings(key,value) VALUES(?,?)').run(setting+'_last_run',JSON.stringify(result));return result;
  });
 }
